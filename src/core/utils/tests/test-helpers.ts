@@ -22,8 +22,25 @@ export function pass(message: string) {
   console.log(`PASS: ${message}`);
 }
 
+export function skip(message: string): never {
+  console.log(`SKIP: ${message}`);
+  process.exit(0);
+}
+
 export function fail(message: string): never {
   throw new Error(`FAIL: ${message}`);
+}
+
+export function isMissingRelationError(message: string | undefined, relation: string): boolean {
+  if (!message) {
+    return false;
+  }
+
+  const normalizedMessage = message.toLowerCase();
+  const normalizedRelation = relation.toLowerCase();
+  return (
+    normalizedMessage.includes("schema cache") && normalizedMessage.includes(normalizedRelation)
+  );
 }
 
 export function requireEnv(name: string): string {
