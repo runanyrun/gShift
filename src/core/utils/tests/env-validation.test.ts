@@ -72,12 +72,22 @@ function main() {
     "Missing anon key should fail-fast",
     () =>
       validateEnv({
-        SUPABASE_URL: "https://ocdaibqbmvppzrdeneqh.supabase.co",
-        NEXT_PUBLIC_SUPABASE_URL: "https://ocdaibqbmvppzrdeneqh.supabase.co",
+        SUPABASE_URL: "http://localhost:54321",
+        NEXT_PUBLIC_SUPABASE_URL: "http://localhost:54321",
         NEXT_PUBLIC_SUPABASE_ANON_KEY: "",
       }),
     "NEXT_PUBLIC_SUPABASE_ANON_KEY",
   );
+
+  const localValid = validateEnv({
+    SUPABASE_URL: "http://localhost:54321",
+    NEXT_PUBLIC_SUPABASE_URL: "http://localhost:54321",
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: "anon-key",
+  });
+  if (localValid.NEXT_PUBLIC_SUPABASE_URL !== "http://localhost:54321") {
+    fail("Local Supabase URL parse did not return expected value.");
+  }
+  pass("Local Supabase URL is accepted.");
 }
 
 main();

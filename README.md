@@ -5,13 +5,27 @@
 Create `.env.local`:
 
 ```bash
-# Do NOT commit real keys. Replace with your project URL.
-SUPABASE_URL=https://your-project-id.supabase.co
-NEXT_PUBLIC_SUPABASE_URL=https://your-project-id.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+# LOCAL-FIRST defaults (generated automatically)
+SUPABASE_URL=http://localhost:54321
+NEXT_PUBLIC_SUPABASE_URL=http://localhost:54321
+SUPABASE_ANON_KEY=local-anon-key-from-supabase-status
+NEXT_PUBLIC_SUPABASE_ANON_KEY=local-anon-key-from-supabase-status
 ```
 
-`SUPABASE_URL` cannot be a placeholder and must match `https://<project-ref>.supabase.co`; app/test boot fails fast if invalid.
+`SUPABASE_URL` cannot be a placeholder; app/test boot fails fast if invalid.
+Accepted formats:
+- `https://<project-ref>.supabase.co` (live)
+- `http://localhost:54321` / `http://127.0.0.1:54321` (local Supabase)
+
+## Local-First Quickstart
+
+```bash
+npm run supabase:start
+npm run env:local
+npm run verify:local
+```
+
+See `DEVELOPMENT.md` for full workflow.
 
 ## Signup Onboarding Flow
 
@@ -116,7 +130,11 @@ npm run verify:qsft9
 ```
 
 This command runs `db:push`, `typecheck`, `test:employees`, and `test:all`, and writes a verification artifact to `docs/verification/QSFT-9.md`.
-If Supabase CLI is unavailable locally, apply `supabase/migrations/0005_employees_foundation.sql` in Supabase SQL Editor first.
+For deterministic local runs, prefer:
+
+```bash
+npm run verify:local
+```
 
 ## Post-Migration Verification
 

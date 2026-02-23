@@ -4,6 +4,13 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "supabase:start": "supabase start",
+    "supabase:stop": "supabase stop",
+    "env:local": "bash scripts/supabase-local-env.sh",
+    "db:reset:local": "supabase db reset --local",
+    "dev:local": "npm run supabase:start && npm run env:local && next dev",
+    "test:all:local": "npm run supabase:start && npm run env:local && npm run test:all",
+    "verify:local": "npm run supabase:start && npm run env:local && npm run db:reset:local && npm run verify:qsft9",
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",

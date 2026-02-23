@@ -350,6 +350,10 @@ export interface Database {
         Args: Record<string, never>;
         Returns: string;
       };
+      current_tenant_id: {
+        Args: Record<string, never>;
+        Returns: string;
+      };
       complete_owner_onboarding: {
         Args: {
           p_auth_user_id: string;
@@ -371,6 +375,16 @@ export interface Database {
       };
       is_management_user: {
         Args: Record<string, never>;
+        Returns: boolean;
+      };
+      is_administration_user: {
+        Args: Record<string, never>;
+        Returns: boolean;
+      };
+      has_permission: {
+        Args: {
+          p_key: string;
+        };
         Returns: boolean;
       };
       get_my_employee: {

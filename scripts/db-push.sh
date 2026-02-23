@@ -11,11 +11,17 @@ fi
 print_instructions() {
   echo "[db:push] Required action:"
   echo "[db:push]   Option A: Install Supabase CLI and run: supabase db push"
-  echo "[db:push]   Option B: Run supabase/migrations/0005_employees_foundation.sql in Supabase SQL Editor"
+  echo "[db:push]   Option B: Run migrations in Supabase SQL Editor (at least 0005 + 0006)"
   echo "[db:push] Notes:"
   echo "[db:push]   - Supabase CLI commands may require a linked project (supabase link)."
   echo "[db:push]   - CI setups typically use SUPABASE_ACCESS_TOKEN and SUPABASE_DB_PASSWORD."
 }
+
+is_local_supabase=false
+supabase_url="${SUPABASE_URL:-${NEXT_PUBLIC_SUPABASE_URL:-}}"
+if [[ "$supabase_url" =~ ^http://(localhost|127\.0\.0\.1):54321$ ]]; then
+  is_local_supabase=true
+fi
 
 if ! command -v supabase >/dev/null 2>&1; then
   echo "[db:push] Supabase CLI not found."
@@ -28,7 +34,13 @@ if ! command -v supabase >/dev/null 2>&1; then
   exit 0
 fi
 
-if supabase db push; then
+push_cmd=(supabase db push)
+if [[ "$is_local_supabase" == "true" ]]; then
+  push_cmd+=(--local)
+  echo "[db:push] Local Supabase URL detected. Running: supabase db push --local"
+fi
+
+if "${push_cmd[@]}"; then
   echo "[db:push] Migrations are up to date."
   exit 0
 fi
