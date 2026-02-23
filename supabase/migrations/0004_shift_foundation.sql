@@ -53,18 +53,15 @@ with check (
   and created_by = auth.uid()
 );
 
-create policy shifts_update_company
+create policy shifts_update_denied
 on public.shifts
 for update
 to authenticated
-using (company_id = public.current_user_company_id())
-with check (
-  company_id = public.current_user_company_id()
-  and created_by = auth.uid()
-);
+using (false)
+with check (false);
 
-create policy shifts_delete_company
+create policy shifts_delete_denied
 on public.shifts
 for delete
 to authenticated
-using (company_id = public.current_user_company_id());
+using (false);
