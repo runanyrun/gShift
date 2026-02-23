@@ -3,10 +3,28 @@ set -euo pipefail
 
 echo "[db:push] Checking Supabase migrations..."
 
+is_ci=false
+if [[ "${CI:-}" == "true" || "${GITHUB_ACTIONS:-}" == "true" ]]; then
+  is_ci=true
+fi
+
+print_instructions() {
+  echo "[db:push] Required action:"
+  echo "[db:push]   Option A: Install Supabase CLI and run: supabase db push"
+  echo "[db:push]   Option B: Run supabase/migrations/0005_employees_foundation.sql in Supabase SQL Editor"
+  echo "[db:push] Notes:"
+  echo "[db:push]   - Supabase CLI commands may require a linked project (supabase link)."
+  echo "[db:push]   - CI setups typically use SUPABASE_ACCESS_TOKEN and SUPABASE_DB_PASSWORD."
+}
+
 if ! command -v supabase >/dev/null 2>&1; then
-  echo "[db:push] Supabase CLI not found. Skipping automatic migration apply."
-  echo "[db:push] Install CLI and run: supabase db push"
-  echo "[db:push] Fallback: run migration SQL files in Supabase SQL Editor."
+  echo "[db:push] Supabase CLI not found."
+  print_instructions
+  if [[ "$is_ci" == "true" ]]; then
+    echo "[db:push] CI mode: failing because migrations cannot be verified automatically."
+    exit 1
+  fi
+  echo "[db:push] Local mode: continuing without automatic migration apply."
   exit 0
 fi
 
@@ -16,12 +34,11 @@ if supabase db push; then
 fi
 
 echo "[db:push] supabase db push failed."
-echo "[db:push] Continue with current schema. If tests fail with missing tables, run:"
-echo "           supabase db push"
-echo "           or apply migrations in Supabase SQL Editor."
-
-if [[ "${DB_PUSH_STRICT:-0}" == "1" ]]; then
+print_instructions
+if [[ "$is_ci" == "true" || "${DB_PUSH_STRICT:-0}" == "1" ]]; then
+  echo "[db:push] Strict mode: failing."
   exit 1
 fi
 
+echo "[db:push] Local mode: continuing with current schema."
 exit 0

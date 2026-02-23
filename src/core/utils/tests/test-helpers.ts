@@ -31,16 +31,36 @@ export function fail(message: string): never {
   throw new Error(`FAIL: ${message}`);
 }
 
-export function isMissingRelationError(message: string | undefined, relation: string): boolean {
+const MIGRATION_0005_RELATIONS = [
+  "public.employees",
+  "employees",
+  "public.job_titles",
+  "job_titles",
+  "public.departments",
+  "departments",
+  "public.locations",
+  "locations",
+  "public.employee_invites",
+  "employee_invites",
+  "public.employee_locations",
+  "employee_locations",
+];
+
+export function isMissingRelationError(message: string | undefined): boolean {
   if (!message) {
     return false;
   }
 
   const normalizedMessage = message.toLowerCase();
-  const normalizedRelation = relation.toLowerCase();
-  return (
-    normalizedMessage.includes("schema cache") && normalizedMessage.includes(normalizedRelation)
-  );
+  const isMissingRelationMessage =
+    normalizedMessage.includes("does not exist") ||
+    normalizedMessage.includes("could not find the table");
+
+  if (!isMissingRelationMessage) {
+    return false;
+  }
+
+  return MIGRATION_0005_RELATIONS.some((relation) => normalizedMessage.includes(relation));
 }
 
 export function requireEnv(name: string): string {

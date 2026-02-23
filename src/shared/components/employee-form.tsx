@@ -16,6 +16,7 @@ interface EmployeeFormProps {
   submitLabel: string;
   error: string | null;
   showNotes?: boolean;
+  readOnly?: boolean;
   onSubmit(values: EmployeeFormValues): Promise<void>;
 }
 
@@ -24,6 +25,7 @@ export function EmployeeForm({
   submitLabel,
   error,
   showNotes = true,
+  readOnly = false,
   onSubmit,
 }: EmployeeFormProps) {
   const [values, setValues] = useState<EmployeeFormValues>(initialValues);
@@ -48,6 +50,7 @@ export function EmployeeForm({
         First Name
         <input
           required
+          disabled={readOnly}
           value={values.firstName}
           onChange={(event) => setValues({ ...values, firstName: event.target.value })}
         />
@@ -56,6 +59,7 @@ export function EmployeeForm({
         Last Name
         <input
           required
+          disabled={readOnly}
           value={values.lastName}
           onChange={(event) => setValues({ ...values, lastName: event.target.value })}
         />
@@ -65,6 +69,7 @@ export function EmployeeForm({
         <input
           type="email"
           required
+          disabled={readOnly}
           value={values.email}
           onChange={(event) => setValues({ ...values, email: event.target.value })}
         />
@@ -75,6 +80,7 @@ export function EmployeeForm({
         Active
         <input
           type="checkbox"
+          disabled={readOnly}
           checked={values.isActive}
           onChange={(event) => setValues({ ...values, isActive: event.target.checked })}
         />
@@ -84,6 +90,7 @@ export function EmployeeForm({
       <label>
         Payroll ID
         <input
+          disabled={readOnly}
           value={values.payrollId}
           onChange={(event) => setValues({ ...values, payrollId: event.target.value })}
         />
@@ -93,6 +100,7 @@ export function EmployeeForm({
         <>
           <h3>Notes</h3>
           <textarea
+            disabled={readOnly}
             value={values.notes}
             onChange={(event) => setValues({ ...values, notes: event.target.value })}
             rows={5}
@@ -100,9 +108,13 @@ export function EmployeeForm({
         </>
       ) : null}
 
-      <button type="submit" disabled={submitting}>
-        {submitting ? "Saving..." : submitLabel}
-      </button>
+      {readOnly ? (
+        <p>You don’t have permission to edit this employee.</p>
+      ) : (
+        <button type="submit" disabled={submitting}>
+          {submitting ? "Saving..." : submitLabel}
+        </button>
+      )}
     </form>
   );
 }

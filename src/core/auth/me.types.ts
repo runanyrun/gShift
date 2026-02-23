@@ -7,7 +7,7 @@ export interface MeResponseData {
   tenant: {
     id: string;
     name: string | null;
-  };
+  } | null;
   permissions: string[];
   employee: {
     id: string;
