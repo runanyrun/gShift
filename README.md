@@ -68,6 +68,11 @@ Protected route example:
 - `src/app/(protected)/layout.tsx`
 - `src/app/(protected)/dashboard/page.tsx`
 
+Dashboard bootstrap API:
+
+- `GET /api/dashboard/bootstrap`
+- Returns authenticated tenant-scoped user/company/metrics payload
+
 ## Multi-Tenant Isolation Pattern
 
 - Helper: `src/core/permissions/tenant-scope.ts`
