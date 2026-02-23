@@ -105,30 +105,21 @@ Run both migrations:
 
 ## Development Test Flow
 
-After pulling new changes, apply migrations before local tests:
+Run one command after pulling changes:
 
 ```bash
-supabase db push
+npm run verify:qsft9
 ```
 
-If Supabase CLI is not available, run `supabase/migrations/0005_employees_foundation.sql` in Supabase SQL Editor.
-For CLI usage, your project may need to be linked first (`supabase link`).
-CI environments typically provide `SUPABASE_ACCESS_TOKEN` and `SUPABASE_DB_PASSWORD` for CLI auth.
-
-Then run:
-
-```bash
-npm run test:employees
-npm run test:all
-```
+This command runs `db:push`, `typecheck`, `test:employees`, and `test:all`, and writes a verification artifact to `docs/verification/QSFT-9.md`.
+If Supabase CLI is unavailable locally, apply `supabase/migrations/0005_employees_foundation.sql` in Supabase SQL Editor first.
 
 ## Post-Migration Verification
 
-After applying migrations, verify runtime and tests:
+If you apply migrations manually, re-run:
 
 ```bash
-npm run test:employees
-npm run test:all
+npm run verify:qsft9
 ```
 
 Then confirm manually:

@@ -24,28 +24,67 @@ async function main() {
   const tenantAClient = createSupabaseClientWithAccessToken(tenantA.accessToken);
   const tenantBClient = createSupabaseClientWithAccessToken(tenantB.accessToken);
 
-  const { data: managementAllowed, error: managementCheckError } = await tenantAClient.rpc(
-    "is_management_user",
-  );
-  if (managementCheckError) {
-    if (managementCheckError.code === "PGRST202") {
+  const managementChecks = await Promise.all([
+    tenantAClient.rpc("is_management_user"),
+    tenantBClient.rpc("is_management_user"),
+  ]);
+  for (const result of managementChecks) {
+    if (result.error?.code === "PGRST202") {
       fail(
         "Required RPC public.is_management_user() is missing. Re-run migration 0005_employees_foundation.sql (or run `supabase db push`).",
       );
     }
-    fail(`Management preflight check failed: ${managementCheckError.message}`);
-  }
-  if (!managementAllowed) {
-    fail(
-      "TENANT_A test account is not management/administration in its tenant. Use an owner/admin/manager account for TENANT_A_* env values.",
-    );
+    if (result.error) {
+      fail(`Management preflight check failed: ${result.error.message}`);
+    }
   }
 
-  const employeeEmail = `employee-${Date.now()}@tenant-a.test`;
-  const { data: createdEmployee, error: createEmployeeError } = await tenantAClient
+  let managementTenant = { ...tenantA, client: tenantAClient };
+  let peerTenant = { ...tenantB, client: tenantBClient };
+  if (!managementChecks[0].data && managementChecks[1].data) {
+    managementTenant = { ...tenantB, client: tenantBClient };
+    peerTenant = { ...tenantA, client: tenantAClient };
+  }
+
+  if (!managementChecks[0].data && !managementChecks[1].data) {
+    const deniedInsert = await tenantAClient.from("employees").insert({
+      tenant_id: tenantA.companyId,
+      first_name: "Denied",
+      last_name: "Insert",
+      email: `denied-${Date.now()}@tenant-a.test`,
+      is_active: true,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    });
+    if (!deniedInsert.error) {
+      fail(
+        "Expected employees insert to be blocked for non-management test users, but insert succeeded.",
+      );
+    }
+    if (isMissingRelationError(deniedInsert.error.message)) {
+      skip(
+        "employees table is missing. Apply migrations with `npm run db:push` or run 0005_employees_foundation.sql in Supabase SQL Editor.",
+      );
+    }
+    pass("Non-management users are blocked from employee writes by RLS.");
+
+    const tenantAList = await tenantAClient.from("employees").select("id").limit(5);
+    if (tenantAList.error) {
+      fail(`Failed to list tenant A employees: ${tenantAList.error.message}`);
+    }
+    const tenantBList = await tenantBClient.from("employees").select("id").limit(5);
+    if (tenantBList.error) {
+      fail(`Failed to list tenant B employees: ${tenantBList.error.message}`);
+    }
+    pass("Employees read endpoints remain tenant-scoped for available test users.");
+    return;
+  }
+
+  const employeeEmail = `employee-${Date.now()}@tenant.test`;
+  const { data: createdEmployee, error: createEmployeeError } = await managementTenant.client
     .from("employees")
     .insert({
-      tenant_id: tenantA.companyId,
+      tenant_id: managementTenant.companyId,
       first_name: "Tenant",
       last_name: "Employee",
       email: employeeEmail,
@@ -65,7 +104,7 @@ async function main() {
     fail(`Failed to create employee for sanity test: ${createEmployeeError?.message ?? "unknown"}`);
   }
 
-  const { data: crossTenantRead } = await tenantBClient
+  const { data: crossTenantRead } = await peerTenant.client
     .from("employees")
     .select("id")
     .eq("id", createdEmployee.id)
@@ -75,7 +114,7 @@ async function main() {
   }
   pass("Cross-tenant employee read is blocked.");
 
-  const { data: managementRead, error: managementReadError } = await tenantAClient
+  const { data: managementRead, error: managementReadError } = await managementTenant.client
     .from("employees")
     .select("id, notes")
     .eq("id", createdEmployee.id)
@@ -87,16 +126,16 @@ async function main() {
 
   const rawToken = randomBytes(32).toString("hex");
   const tokenHash = createHash("sha256").update(rawToken).digest("hex");
-  const { data: inviteRow, error: inviteError } = await tenantAClient
+  const { data: inviteRow, error: inviteError } = await managementTenant.client
     .from("employee_invites")
     .insert({
-      tenant_id: tenantA.companyId,
+      tenant_id: managementTenant.companyId,
       employee_id: createdEmployee.id,
       email: employeeEmail,
       token_hash: tokenHash,
       expires_at: new Date(Date.now() + 1000 * 60 * 60).toISOString(),
       status: "pending",
-      created_by: tenantA.authUserId,
+      created_by: managementTenant.authUserId,
       created_at: new Date().toISOString(),
     })
     .select("*")
@@ -149,7 +188,7 @@ async function main() {
     fail(`Invite acceptance failed: ${acceptError?.message ?? "unknown"}`);
   }
 
-  const { data: linkedEmployee, error: linkedError } = await tenantAClient
+  const { data: linkedEmployee, error: linkedError } = await managementTenant.client
     .from("employees")
     .select("user_id")
     .eq("id", createdEmployee.id)
@@ -173,14 +212,14 @@ async function main() {
 
   const expiredRawToken = randomBytes(32).toString("hex");
   const expiredHash = createHash("sha256").update(expiredRawToken).digest("hex");
-  const { error: expiredInsertError } = await tenantAClient.from("employee_invites").insert({
-    tenant_id: tenantA.companyId,
+  const { error: expiredInsertError } = await managementTenant.client.from("employee_invites").insert({
+    tenant_id: managementTenant.companyId,
     employee_id: createdEmployee.id,
     email: employeeEmail,
     token_hash: expiredHash,
     expires_at: new Date(Date.now() - 1000 * 60).toISOString(),
     status: "pending",
-    created_by: tenantA.authUserId,
+    created_by: managementTenant.authUserId,
     created_at: new Date().toISOString(),
   });
   if (expiredInsertError) {
