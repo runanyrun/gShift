@@ -7,7 +7,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { createSupabaseClientWithAccessToken } from "../../db/supabase";
 import { env } from "../../config/env";
-import { fail, pass, requireEnv, signIn } from "./test-helpers";
+import { fail, isMissingRelationError, pass, requireEnv, signIn, skip } from "./test-helpers";
 import { createHash, randomBytes } from "crypto";
 
 async function main() {
@@ -40,6 +40,11 @@ async function main() {
     .select("*")
     .single();
   if (createEmployeeError || !createdEmployee) {
+    if (isMissingRelationError(createEmployeeError?.message, "employees")) {
+      skip(
+        "employees table is missing. Apply migrations with `npm run db:push` or run 0005_employees_foundation.sql in Supabase SQL Editor.",
+      );
+    }
     fail(`Failed to create employee for sanity test: ${createEmployeeError?.message ?? "unknown"}`);
   }
 
@@ -80,6 +85,11 @@ async function main() {
     .select("*")
     .single();
   if (inviteError || !inviteRow || inviteRow.status !== "pending") {
+    if (isMissingRelationError(inviteError?.message, "employee_invites")) {
+      skip(
+        "employee_invites table is missing. Apply migrations with `npm run db:push` or run 0005_employees_foundation.sql in Supabase SQL Editor.",
+      );
+    }
     fail(`Invite row was not created as pending: ${inviteError?.message ?? "unknown"}`);
   }
   pass("Invite row is created with pending status and token hash.");
@@ -114,6 +124,11 @@ async function main() {
     },
   );
   if (acceptError || !Array.isArray(accepted) || accepted.length === 0) {
+    if (acceptError?.message?.toLowerCase().includes("accept_employee_invite")) {
+      skip(
+        "accept_employee_invite RPC is missing. Apply migrations with `npm run db:push` or run 0005_employees_foundation.sql in Supabase SQL Editor.",
+      );
+    }
     fail(`Invite acceptance failed: ${acceptError?.message ?? "unknown"}`);
   }
 

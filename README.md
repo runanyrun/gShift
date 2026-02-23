@@ -103,6 +103,23 @@ Run both migrations:
 - `users` policies (same-company access)
 - helper function `current_user_company_id()`
 
+## Development Test Flow
+
+After pulling new changes, apply migrations before local tests:
+
+```bash
+supabase db push
+```
+
+If Supabase CLI is not available, run migration SQL files from `supabase/migrations/` in Supabase SQL Editor.
+
+Then run:
+
+```bash
+npm run test:employees
+npm run test:all
+```
+
 ## Important Notes
 
 - All timestamps are written as UTC ISO strings.
