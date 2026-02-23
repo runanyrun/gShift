@@ -4,13 +4,6 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "supabase:start": "bash scripts/supabase-local-ensure.sh",
-    "supabase:stop": "supabase stop",
-    "env:local": "bash scripts/supabase-local-ensure.sh && bash scripts/supabase-local-env.sh",
-    "db:reset:local": "bash scripts/supabase-local-ensure.sh && supabase db reset --local",
-    "dev:local": "npm run supabase:start && npm run env:local && next dev",
-    "test:all:local": "npm run supabase:start && npm run env:local && npm run test:all",
-    "verify:local": "bash scripts/supabase-local-ensure.sh && npm run env:local && npm run db:reset:local && npm run verify:qsft9",
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",

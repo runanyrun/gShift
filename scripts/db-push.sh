@@ -17,12 +17,6 @@ print_instructions() {
   echo "[db:push]   - CI setups typically use SUPABASE_ACCESS_TOKEN and SUPABASE_DB_PASSWORD."
 }
 
-is_local_supabase=false
-supabase_url="${SUPABASE_URL:-${NEXT_PUBLIC_SUPABASE_URL:-}}"
-if [[ "$supabase_url" =~ ^http://(localhost|127\.0\.0\.1):54321$ ]]; then
-  is_local_supabase=true
-fi
-
 if ! command -v supabase >/dev/null 2>&1; then
   echo "[db:push] Supabase CLI not found."
   print_instructions
@@ -34,13 +28,7 @@ if ! command -v supabase >/dev/null 2>&1; then
   exit 0
 fi
 
-push_cmd=(supabase db push)
-if [[ "$is_local_supabase" == "true" ]]; then
-  push_cmd+=(--local)
-  echo "[db:push] Local Supabase URL detected. Running: supabase db push --local"
-fi
-
-if "${push_cmd[@]}"; then
+if supabase db push; then
   echo "[db:push] Migrations are up to date."
   exit 0
 fi

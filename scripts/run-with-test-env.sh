@@ -26,8 +26,8 @@ if [[ "$supabase_url" == *"YOURPROJECT.supabase.co"* || "$supabase_url" == *"you
   exit 1
 fi
 
-if [[ ! "$supabase_url" =~ ^https://[a-z0-9]+\.supabase\.co$ && ! "$supabase_url" =~ ^http://(localhost|127\.0\.0\.1):[0-9]+$ ]]; then
-  echo "SUPABASE_URL is a placeholder or invalid. Set your real Supabase project URL (or local http://localhost:54321)."
+if [[ ! "$supabase_url" =~ ^https://[a-z0-9]+\.supabase\.co$ ]]; then
+  echo "SUPABASE_URL is a placeholder or invalid. Set your real Supabase project URL."
   exit 1
 fi
 
