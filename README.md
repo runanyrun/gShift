@@ -111,7 +111,9 @@ After pulling new changes, apply migrations before local tests:
 supabase db push
 ```
 
-If Supabase CLI is not available, run migration SQL files from `supabase/migrations/` in Supabase SQL Editor.
+If Supabase CLI is not available, run `supabase/migrations/0005_employees_foundation.sql` in Supabase SQL Editor.
+For CLI usage, your project may need to be linked first (`supabase link`).
+CI environments typically provide `SUPABASE_ACCESS_TOKEN` and `SUPABASE_DB_PASSWORD` for CLI auth.
 
 Then run:
 

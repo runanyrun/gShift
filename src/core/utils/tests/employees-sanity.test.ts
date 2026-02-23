@@ -40,7 +40,7 @@ async function main() {
     .select("*")
     .single();
   if (createEmployeeError || !createdEmployee) {
-    if (isMissingRelationError(createEmployeeError?.message, "employees")) {
+    if (isMissingRelationError(createEmployeeError?.message)) {
       skip(
         "employees table is missing. Apply migrations with `npm run db:push` or run 0005_employees_foundation.sql in Supabase SQL Editor.",
       );
@@ -85,7 +85,7 @@ async function main() {
     .select("*")
     .single();
   if (inviteError || !inviteRow || inviteRow.status !== "pending") {
-    if (isMissingRelationError(inviteError?.message, "employee_invites")) {
+    if (isMissingRelationError(inviteError?.message)) {
       skip(
         "employee_invites table is missing. Apply migrations with `npm run db:push` or run 0005_employees_foundation.sql in Supabase SQL Editor.",
       );
