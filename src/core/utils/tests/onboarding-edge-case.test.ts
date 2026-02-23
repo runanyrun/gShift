@@ -5,8 +5,8 @@
  * 3. Run all tests: npm run test:workflow
  * 4. Check console output for pass/fail
  */
-import { createSupabaseClientWithAccessToken } from "../../db/supabase";
 import { createAuthClient, fail, pass, requireEnv } from "./test-helpers";
+import { createSupabaseClientWithAccessToken } from "../../db/supabase";
 
 async function signInForDuplicateTest() {
   const email = requireEnv("EDGE_CASE_EMAIL");
@@ -69,30 +69,9 @@ async function testNullAuthUid() {
   pass("NULL auth.uid() path is blocked.");
 }
 
-async function testMultipleCompaniesForSameUser() {
-  const token = process.env.MULTI_COMPANY_ACCESS_TOKEN;
-
-  if (!token) {
-    console.log(
-      "SKIP: MULTI_COMPANY_ACCESS_TOKEN not provided. Provide token for an intentionally anomalous user to runtime-verify multi-company exception.",
-    );
-    return;
-  }
-
-  const client = createSupabaseClientWithAccessToken(token);
-  const { error } = await client.rpc("current_user_company_id");
-  if (!error || !error.message.includes("Multiple companies found")) {
-    fail(
-      `Expected multiple-company exception, got: ${error?.message ?? "no error returned"}`,
-    );
-  }
-  pass("Multiple companies for same user throws exception.");
-}
-
 async function main() {
   await testDuplicateOnboarding();
   await testNullAuthUid();
-  await testMultipleCompaniesForSameUser();
 }
 
 main().catch((error) => {

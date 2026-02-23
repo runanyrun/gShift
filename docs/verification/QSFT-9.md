@@ -203,3 +203,8 @@ PASS: company_id is immutable through tenant-safe RLS/update rules.
 ## Result
 
 PASS
+
+## Notes
+
+- Core suites (`test:all`, `test:my-shifts`) are deterministic and do not rely on pre-seeded management users.
+- Optional env-dependent checks live under `npm run test:env-dependent` (e.g. multi-company anomaly token).

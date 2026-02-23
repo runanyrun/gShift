@@ -23,6 +23,7 @@
     "test:my-shifts": "npm run test:my-shifts:service && npm run test:api-my-shifts",
     "test:http": "node scripts/run-ssr-tests.mjs test:ssr:raw test:me:raw test:dashboard:raw",
     "test:onboarding": "bash scripts/run-with-test-env.sh ts-node --transpile-only --compiler-options '{\"module\":\"CommonJS\",\"moduleResolution\":\"Node\"}' src/core/utils/tests/onboarding-edge-case.test.ts",
+    "test:env-dependent": "bash scripts/run-with-test-env.sh ts-node --transpile-only --compiler-options '{\"module\":\"CommonJS\",\"moduleResolution\":\"Node\"}' src/core/utils/tests/env-dependent/onboarding-multi-company.test.ts",
     "test:employees": "npm run db:push && bash scripts/run-with-test-env.sh ts-node --transpile-only --compiler-options '{\"module\":\"CommonJS\",\"moduleResolution\":\"Node\"}' src/core/utils/tests/employees-sanity.test.ts",
     "test:shift": "bash scripts/run-with-test-env.sh ts-node --transpile-only --compiler-options '{\"module\":\"CommonJS\",\"moduleResolution\":\"Node\"}' src/core/utils/tests/shift-sanity.test.ts",
     "test:all": "npm run db:push && npm run test:env && npm run test:ui-permissions && npm run test:routing && npm run test:http && npm run test:onboarding && npm run test:employees && npm run test:my-shifts && npm run test:shift",

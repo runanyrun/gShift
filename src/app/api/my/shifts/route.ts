@@ -31,11 +31,9 @@ export async function GET(request: Request) {
       .eq("tenant_id", context.companyId)
       .eq("user_id", authUserId)
       .maybeSingle();
-
     if (employeeError) {
       throw new Error(`Failed to resolve employee context: ${employeeError.message}`);
     }
-
     if (!employee) {
       return NextResponse.json(
         { ok: false, error: { message: "Employee profile is not linked.", code: "employee_missing" } },
