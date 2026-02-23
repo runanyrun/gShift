@@ -1,0 +1,35 @@
+{
+  "name": "gshift",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "test:env": "ts-node --transpile-only --compiler-options '{\"module\":\"CommonJS\",\"moduleResolution\":\"Node\"}' src/core/utils/tests/env-validation.test.ts",
+    "test:ssr": "ts-node --transpile-only --compiler-options '{\"module\":\"CommonJS\",\"moduleResolution\":\"Node\"}' src/core/utils/tests/ssr-auth.test.ts",
+    "test:me": "ts-node --transpile-only --compiler-options '{\"module\":\"CommonJS\",\"moduleResolution\":\"Node\"}' src/core/utils/tests/me-sanity.test.ts",
+    "test:dashboard": "ts-node --transpile-only --compiler-options '{\"module\":\"CommonJS\",\"moduleResolution\":\"Node\"}' src/core/utils/tests/dashboard-sanity.test.ts",
+    "test:onboarding": "ts-node --transpile-only --compiler-options '{\"module\":\"CommonJS\",\"moduleResolution\":\"Node\"}' src/core/utils/tests/onboarding-edge-case.test.ts",
+    "test:employees": "ts-node --transpile-only --compiler-options '{\"module\":\"CommonJS\",\"moduleResolution\":\"Node\"}' src/core/utils/tests/employees-sanity.test.ts",
+    "test:shift": "TENANT_A_EMAIL=$TENANT_A_EMAIL TENANT_A_PASSWORD=$TENANT_A_PASSWORD TENANT_B_EMAIL=$TENANT_B_EMAIL TENANT_B_PASSWORD=$TENANT_B_PASSWORD ts-node --transpile-only --compiler-options '{\"module\":\"CommonJS\",\"moduleResolution\":\"Node\"}' src/core/utils/tests/shift-sanity.test.ts",
+    "test:all": "npm run test:env && npm run test:ssr && npm run test:me && npm run test:dashboard && npm run test:onboarding && npm run test:employees && npm run test:shift",
+    "test:workflow": "npm run test:env && npm run test:all",
+    "test:ssr-auth": "npm run test:ssr"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.57.4",
+    "next": "^15.5.3",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.17.1",
+    "@types/react": "^19.1.9",
+    "@types/react-dom": "^19.1.7",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.2"
+  }
+}
