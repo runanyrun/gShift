@@ -21,7 +21,7 @@ export default function LoginPage() {
 
     try {
       const supabase = createBrowserSupabaseClient();
-      const { error: signInError } = await supabase.auth.signInWithPassword({
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email: email.trim().toLowerCase(),
         password,
       });
@@ -29,6 +29,15 @@ export default function LoginPage() {
       if (signInError) {
         throw new Error(signInError.message);
       }
+
+      const accessToken = data.session?.access_token;
+      const expiresAt = data.session?.expires_at;
+      if (!accessToken || !expiresAt) {
+        throw new Error("Auth session missing.");
+      }
+
+      const maxAge = Math.max(0, expiresAt - Math.floor(Date.now() / 1000));
+      document.cookie = `sb_access_token=${accessToken}; Path=/; Max-Age=${maxAge}; SameSite=Lax`;
 
       router.replace(next);
     } catch (submitError) {

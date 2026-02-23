@@ -24,6 +24,14 @@ export async function GET(request: Request) {
     }
 
     const supabase = createSupabaseClientWithAccessToken(accessToken);
+    const { data: authData, error: authError } = await supabase.auth.getUser();
+    if (authError || !authData.user) {
+      return NextResponse.json(
+        { error: "Invalid or expired access token." },
+        { status: 401 },
+      );
+    }
+
     const service = new DashboardBootstrapService(supabase);
     const payload = await service.getBootstrap();
     return NextResponse.json(payload, { status: 200 });

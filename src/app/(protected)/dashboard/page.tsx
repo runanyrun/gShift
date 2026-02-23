@@ -16,6 +16,7 @@ export default function DashboardPage() {
     try {
       const supabase = createBrowserSupabaseClient();
       await supabase.auth.signOut();
+      document.cookie = "sb_access_token=; Path=/; Max-Age=0; SameSite=Lax";
       router.replace("/login");
     } finally {
       setSigningOut(false);
