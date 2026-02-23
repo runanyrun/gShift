@@ -1,16 +1,22 @@
 import { getCurrentUserTenantContextOrThrow } from "../../../core/auth/current-user";
-import { createServerSupabaseClient } from "../../../core/db/supabase";
+import {
+  createServerSupabaseClient,
+  TypedSupabaseClient,
+} from "../../../core/db/supabase";
 import { CompanyService } from "../../company/services/company.service";
 import { UserService } from "../../user/services/user.service";
 import { DashboardBootstrapPayload } from "../types/dashboard.types";
 
 export class DashboardBootstrapService {
-  async getBootstrap(): Promise<DashboardBootstrapPayload> {
-    const supabase = createServerSupabaseClient();
-    const companyService = new CompanyService(supabase);
-    const userService = new UserService(supabase);
+  constructor(
+    private readonly supabase: TypedSupabaseClient = createServerSupabaseClient(),
+  ) {}
 
-    const context = await getCurrentUserTenantContextOrThrow(supabase);
+  async getBootstrap(): Promise<DashboardBootstrapPayload> {
+    const companyService = new CompanyService(this.supabase);
+    const userService = new UserService(this.supabase);
+
+    const context = await getCurrentUserTenantContextOrThrow(this.supabase);
     const [profile, company, usersCount] = await Promise.all([
       userService.getCurrentUserProfile(context.authUserId),
       companyService.getScopedCompany(context.companyId),
