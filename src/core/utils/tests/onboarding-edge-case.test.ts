@@ -1,27 +1,17 @@
-import { createClient } from "@supabase/supabase-js";
+/**
+ * Local test setup:
+ * 1. Copy `.env.test.local.example` -> `.env.test.local`
+ * 2. Fill dummy accounts for TENANT_A/B and EDGE_CASE
+ * 3. Run all tests: npm run test:workflow
+ * 4. Check console output for pass/fail
+ */
 import { createSupabaseClientWithAccessToken } from "../../db/supabase";
-import { env } from "../../config/env";
-
-function pass(message: string) {
-  console.log(`PASS: ${message}`);
-}
-
-function fail(message: string): never {
-  throw new Error(`FAIL: ${message}`);
-}
+import { createAuthClient, fail, pass, requireEnv } from "./test-helpers";
 
 async function signInForDuplicateTest() {
-  const email = process.env.EDGE_CASE_EMAIL;
-  const password = process.env.EDGE_CASE_PASSWORD;
-  if (!email || !password) {
-    fail("Missing EDGE_CASE_EMAIL or EDGE_CASE_PASSWORD for duplicate onboarding test.");
-  }
-
-  const client = createClient(
-    env.NEXT_PUBLIC_SUPABASE_URL,
-    env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-    { auth: { persistSession: false, autoRefreshToken: false } },
-  );
+  const email = requireEnv("EDGE_CASE_EMAIL");
+  const password = requireEnv("EDGE_CASE_PASSWORD");
+  const client = createAuthClient();
   const { data, error } = await client.auth.signInWithPassword({ email, password });
   if (error || !data.user || !data.session?.access_token) {
     fail(`Sign in failed for duplicate onboarding test: ${error?.message ?? "unknown"}`);
@@ -57,11 +47,7 @@ async function testDuplicateOnboarding() {
 }
 
 async function testNullAuthUid() {
-  const publicClient = createClient(
-    env.NEXT_PUBLIC_SUPABASE_URL,
-    env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-    { auth: { persistSession: false, autoRefreshToken: false } },
-  );
+  const publicClient = createAuthClient();
 
   const { error } = await publicClient.rpc("complete_owner_onboarding", {
     p_auth_user_id: "00000000-0000-0000-0000-000000000000",

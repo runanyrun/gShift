@@ -1,12 +1,12 @@
+/**
+ * Local test setup:
+ * 1. Copy `.env.test.local.example` -> `.env.test.local`
+ * 2. Fill dummy accounts for TENANT_A/B and EDGE_CASE
+ * 3. Run all tests: npm run test:workflow
+ * 4. Check console output for pass/fail
+ */
 import { validateEnv } from "../../config/env";
-
-function pass(message: string) {
-  console.log(`PASS: ${message}`);
-}
-
-function fail(message: string): never {
-  throw new Error(`FAIL: ${message}`);
-}
+import { fail, pass, requireEnv } from "./test-helpers";
 
 function expectThrows(label: string, fn: () => void, expectedText: string) {
   try {
@@ -22,11 +22,8 @@ function expectThrows(label: string, fn: () => void, expectedText: string) {
 }
 
 function main() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !anonKey) {
-    fail("Current process is missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY.");
-  }
+  const url = requireEnv("NEXT_PUBLIC_SUPABASE_URL");
+  const anonKey = requireEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY");
 
   const valid = validateEnv({
     NEXT_PUBLIC_SUPABASE_URL: url,
