@@ -125,7 +125,6 @@ npm run verify:qsft9
 Then confirm manually:
 - `GET /api/me` returns `ok=true` with `user`, `tenant`, `permissions`, `employee|null`
 - `/employees` loads after login
-
 ## Important Notes
 
 - All timestamps are written as UTC ISO strings.
