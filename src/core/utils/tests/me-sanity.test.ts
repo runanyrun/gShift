@@ -5,13 +5,14 @@
  * 3. Start app: npm run dev
  * 4. Run: npm run test:me
  */
-import { fail, pass, requireEnv, signIn } from "./test-helpers";
+import { createAuthClient, fail, makeUniqueEmail, pass, requireEnv, signIn } from "./test-helpers";
+import { resolvePostLoginRoute } from "../../auth/post-login-routing";
 
 interface MeApiResponse {
   ok: boolean;
   data?: {
     user: { id: string; email: string | null; name: string | null };
-    tenant: { id: string; name: string | null };
+    tenant: { id: string; name: string | null } | null;
     permissions: string[];
     employee: { id: string; first_name: string; last_name: string; email: string } | null;
   };
@@ -50,7 +51,7 @@ async function main() {
   if (authorized.body.data.user.id !== tenant.authUserId) {
     fail("Returned /api/me user.id does not match authenticated user.");
   }
-  if (authorized.body.data.tenant.id !== tenant.companyId) {
+  if (!authorized.body.data.tenant || authorized.body.data.tenant.id !== tenant.companyId) {
     fail("Returned /api/me tenant.id does not match tenant context.");
   }
   if (!Array.isArray(authorized.body.data.permissions)) {
@@ -67,6 +68,42 @@ async function main() {
     }
   }
   pass("/api/me returns user, tenant, permissions and safe employee payload.");
+
+  const unlinkedEmail = makeUniqueEmail("me-unlinked");
+  const unlinkedPassword = "MeUnlinked123!";
+  const authClient = createAuthClient();
+
+  const { error: unlinkedSignupError } = await authClient.auth.signUp({
+    email: unlinkedEmail,
+    password: unlinkedPassword,
+  });
+  if (unlinkedSignupError) {
+    fail(`Failed to sign up unlinked me-sanity user: ${unlinkedSignupError.message}`);
+  }
+
+  const { data: unlinkedSignInData, error: unlinkedSignInError } = await authClient.auth.signInWithPassword({
+    email: unlinkedEmail,
+    password: unlinkedPassword,
+  });
+  if (unlinkedSignInError || !unlinkedSignInData.session?.access_token) {
+    fail(`Failed to sign in unlinked me-sanity user: ${unlinkedSignInError?.message ?? "unknown"}`);
+  }
+
+  const unlinkedResponse = await requestMe(baseUrl, unlinkedSignInData.session.access_token);
+  if (unlinkedResponse.response.status !== 200 || !unlinkedResponse.body.ok || !unlinkedResponse.body.data) {
+    fail(
+      `Expected linked /api/me success for unlinked user, got status=${unlinkedResponse.response.status}, body=${JSON.stringify(unlinkedResponse.body)}`,
+    );
+  }
+  if (unlinkedResponse.body.data.tenant !== null || unlinkedResponse.body.data.employee !== null) {
+    fail("/api/me should return tenant=null and employee=null for unlinked users.");
+  }
+
+  const target = resolvePostLoginRoute(unlinkedResponse.body.data);
+  if (target !== "/onboarding") {
+    fail(`Expected unlinked post-login route to /onboarding, got ${target}`);
+  }
+  pass("/api/me tenant=null employee=null routes to /onboarding.");
 }
 
 main().catch((error) => {

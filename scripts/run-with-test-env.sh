@@ -14,10 +14,21 @@ fi
 if [[ -z "${NEXT_PUBLIC_SUPABASE_URL:-}" && -n "${SUPABASE_URL:-}" ]]; then
   export NEXT_PUBLIC_SUPABASE_URL="${SUPABASE_URL}"
 fi
+if [[ -z "${SUPABASE_ANON_KEY:-}" && -n "${NEXT_PUBLIC_SUPABASE_ANON_KEY:-}" ]]; then
+  export SUPABASE_ANON_KEY="${NEXT_PUBLIC_SUPABASE_ANON_KEY}"
+fi
+if [[ -z "${NEXT_PUBLIC_SUPABASE_ANON_KEY:-}" && -n "${SUPABASE_ANON_KEY:-}" ]]; then
+  export NEXT_PUBLIC_SUPABASE_ANON_KEY="${SUPABASE_ANON_KEY}"
+fi
 
 supabase_url="${SUPABASE_URL:-}"
 if [[ -z "$supabase_url" ]]; then
   echo "SUPABASE_URL is not set"
+  exit 1
+fi
+
+if [[ -z "${NEXT_PUBLIC_SUPABASE_ANON_KEY:-}" ]]; then
+  echo "SUPABASE_ANON_KEY is not set"
   exit 1
 fi
 

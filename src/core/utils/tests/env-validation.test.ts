@@ -35,6 +35,16 @@ function main() {
   }
   pass("Valid environment parses successfully.");
 
+  const validWithServerAnonKey = validateEnv({
+    SUPABASE_URL: url,
+    NEXT_PUBLIC_SUPABASE_URL: url,
+    SUPABASE_ANON_KEY: anonKey,
+  });
+  if (!validWithServerAnonKey.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    fail("SUPABASE_ANON_KEY fallback did not populate NEXT_PUBLIC_SUPABASE_ANON_KEY.");
+  }
+  pass("SUPABASE_ANON_KEY fallback works.");
+
   expectThrows(
     "Placeholder URL should fail-fast",
     () =>

@@ -15,6 +15,7 @@ export type AppEnv = z.infer<typeof envSchema>;
 export function validateEnv(rawEnv: {
   SUPABASE_URL?: string;
   NEXT_PUBLIC_SUPABASE_URL?: string;
+  SUPABASE_ANON_KEY?: string;
   NEXT_PUBLIC_SUPABASE_ANON_KEY?: string;
 }): AppEnv {
   const validatedSupabaseUrl = resolveSupabaseUrl({
@@ -22,9 +23,11 @@ export function validateEnv(rawEnv: {
     NEXT_PUBLIC_SUPABASE_URL: rawEnv.NEXT_PUBLIC_SUPABASE_URL,
   });
 
+  const resolvedAnonKey = rawEnv.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? rawEnv.SUPABASE_ANON_KEY;
+
   const envParseResult = envSchema.safeParse({
     NEXT_PUBLIC_SUPABASE_URL: validatedSupabaseUrl,
-    NEXT_PUBLIC_SUPABASE_ANON_KEY: rawEnv.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: resolvedAnonKey,
   });
 
   if (!envParseResult.success) {
@@ -40,5 +43,6 @@ export function validateEnv(rawEnv: {
 export const env = validateEnv({
   SUPABASE_URL: process.env.SUPABASE_URL,
   NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
+  SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY,
   NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
 });

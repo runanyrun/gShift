@@ -30,7 +30,8 @@
     "test:workflow": "npm run test:env && npm run test:all",
     "test:ssr-auth": "npm run test:ssr",
     "verify:qsft9": "bash scripts/verify-qsft9.sh",
-    "verify": "npm run verify:qsft9"
+    "verify:cloud": "bash scripts/verify-cloud.sh",
+    "verify": "npm run verify:cloud"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",

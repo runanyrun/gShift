@@ -2,14 +2,21 @@
 
 ## Environment Variables
 
-Create `.env.local`:
+Cloud-only quickstart:
+
+1. Copy `.env.local.example` -> `.env.local`
+2. Set your live project URL and publishable key
+3. Run `npm run dev`
+4. Open `/signup` to start onboarding
+
+Required `.env.local` values:
 
 ```bash
 # Live Supabase (web project)
 SUPABASE_URL=https://<project-ref>.supabase.co
 NEXT_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
-SUPABASE_ANON_KEY=<anon-key>
-NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon-key>
+SUPABASE_ANON_KEY=<publishable-key>
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<publishable-key>
 ```
 
 `SUPABASE_URL` cannot be a placeholder; app/test boot fails fast if invalid.
@@ -115,10 +122,10 @@ Run both migrations:
 Run one command after pulling changes:
 
 ```bash
-npm run verify:qsft9
+npm run verify:cloud
 ```
 
-This command runs `db:push`, `typecheck`, `test:employees`, and `test:all`, and writes a verification artifact to `docs/verification/QSFT-9.md`.
+This command runs `typecheck`, `test:env`, and `test:all` in cloud mode.
 
 ## Post-Migration Verification
 
