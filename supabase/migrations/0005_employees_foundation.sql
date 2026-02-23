@@ -49,8 +49,7 @@ create table if not exists public.employees (
   notes text,
   user_id uuid references auth.users(id) on delete set null,
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now(),
-  unique (tenant_id, lower(email))
+  updated_at timestamptz not null default now()
 );
 
 create table if not exists public.employee_locations (
@@ -94,6 +93,7 @@ create index if not exists idx_departments_tenant_id on public.departments(tenan
 create index if not exists idx_locations_tenant_id on public.locations(tenant_id);
 create index if not exists idx_employees_tenant_id on public.employees(tenant_id);
 create index if not exists idx_employees_user_id on public.employees(user_id);
+create unique index if not exists employees_tenant_email_uq on public.employees(tenant_id, lower(email));
 create index if not exists idx_employee_locations_employee on public.employee_locations(employee_id);
 create index if not exists idx_employee_invites_employee on public.employee_invites(employee_id);
 create index if not exists idx_employee_invites_status on public.employee_invites(status);
