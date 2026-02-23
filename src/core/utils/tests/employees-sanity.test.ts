@@ -24,6 +24,23 @@ async function main() {
   const tenantAClient = createSupabaseClientWithAccessToken(tenantA.accessToken);
   const tenantBClient = createSupabaseClientWithAccessToken(tenantB.accessToken);
 
+  const { data: managementAllowed, error: managementCheckError } = await tenantAClient.rpc(
+    "is_management_user",
+  );
+  if (managementCheckError) {
+    if (managementCheckError.code === "PGRST202") {
+      fail(
+        "Required RPC public.is_management_user() is missing. Re-run migration 0005_employees_foundation.sql (or run `supabase db push`).",
+      );
+    }
+    fail(`Management preflight check failed: ${managementCheckError.message}`);
+  }
+  if (!managementAllowed) {
+    fail(
+      "TENANT_A test account is not management/administration in its tenant. Use an owner/admin/manager account for TENANT_A_* env values.",
+    );
+  }
+
   const employeeEmail = `employee-${Date.now()}@tenant-a.test`;
   const { data: createdEmployee, error: createEmployeeError } = await tenantAClient
     .from("employees")

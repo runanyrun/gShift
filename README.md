@@ -122,6 +122,19 @@ npm run test:employees
 npm run test:all
 ```
 
+## Post-Migration Verification
+
+After applying migrations, verify runtime and tests:
+
+```bash
+npm run test:employees
+npm run test:all
+```
+
+Then confirm manually:
+- `GET /api/me` returns `ok=true` with `user`, `tenant`, `permissions`, `employee|null`
+- `/employees` loads after login
+
 ## Important Notes
 
 - All timestamps are written as UTC ISO strings.
