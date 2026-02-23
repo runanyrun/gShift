@@ -3,11 +3,15 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createBrowserSupabaseClient } from "../../../core/db/supabase";
-import { DashboardBootstrapPayload } from "../../../features/dashboard/types/dashboard.types";
+import {
+  DashboardOverview,
+  DashboardShiftItem,
+} from "../../../features/dashboard/dashboard.types";
 
 export default function DashboardPage() {
   const router = useRouter();
-  const [data, setData] = useState<DashboardBootstrapPayload | null>(null);
+  const [overview, setOverview] = useState<DashboardOverview | null>(null);
+  const [shifts, setShifts] = useState<DashboardShiftItem[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [signingOut, setSigningOut] = useState(false);
 
@@ -40,26 +44,44 @@ export default function DashboardPage() {
           throw new Error("Auth session missing.");
         }
 
-        return fetch("/api/dashboard/bootstrap", {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        });
-      })
-      .then(async (response) => {
-        if (!response.ok) {
-          const body = (await response.json()) as { error?: string };
-          throw new Error(body.error ?? "Failed to load dashboard bootstrap.");
+        const requestHeaders = {
+          Authorization: `Bearer ${accessToken}`,
+        };
+
+        const [overviewResponse, shiftsResponse] = await Promise.all([
+          fetch("/api/dashboard/overview", {
+            method: "GET",
+            headers: requestHeaders,
+          }),
+          fetch("/api/dashboard/shifts", {
+            method: "GET",
+            headers: requestHeaders,
+          }),
+        ]);
+
+        if (!overviewResponse.ok) {
+          const body = (await overviewResponse.json()) as { error?: string };
+          throw new Error(body.error ?? "Failed to load dashboard overview.");
         }
 
-        return (await response.json()) as DashboardBootstrapPayload;
+        if (!shiftsResponse.ok) {
+          const body = (await shiftsResponse.json()) as { error?: string };
+          throw new Error(body.error ?? "Failed to load dashboard shifts.");
+        }
+
+        const [overviewPayload, shiftsPayload] = await Promise.all([
+          overviewResponse.json() as Promise<DashboardOverview>,
+          shiftsResponse.json() as Promise<DashboardShiftItem[]>,
+        ]);
+
+        return { overviewPayload, shiftsPayload };
       })
       .then((payload) => {
         if (!mounted) {
           return;
         }
-        setData(payload);
+        setOverview(payload.overviewPayload);
+        setShifts(payload.shiftsPayload);
       })
       .catch((fetchError) => {
         if (!mounted) {
@@ -81,23 +103,34 @@ export default function DashboardPage() {
     return <div>{error}</div>;
   }
 
-  if (!data) {
+  if (!overview) {
     return <div>Loading dashboard...</div>;
   }
 
   return (
     <div>
-      <h1>{data.company.name}</h1>
+      <h1>Tenant Dashboard</h1>
       <button type="button" onClick={onSignOut} disabled={signingOut}>
         {signingOut ? "Signing out..." : "Sign out"}
       </button>
       <p>
-        Role: {data.user.role} | Users: {data.metrics.usersCount}
+        Company: {overview.companyId}
       </p>
       <p>
-        Timezone: {data.company.timezone ?? "not-set"} | Currency:{" "}
-        {data.company.currencyCode ?? "not-set"}
+        Users: {overview.usersCount} | Shifts: {overview.shiftsCount}
       </p>
+      <h2>Shifts</h2>
+      {shifts.length === 0 ? (
+        <p>No shifts found.</p>
+      ) : (
+        <ul>
+          {shifts.map((shift) => (
+            <li key={shift.id}>
+              {shift.startsAt} - {shift.endsAt} (user: {shift.userId})
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
