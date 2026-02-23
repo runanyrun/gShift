@@ -1,10 +1,16 @@
 import { ReactNode } from "react";
-import { AuthGuard } from "../../core/auth/AuthGuard";
+import { redirect } from "next/navigation";
+import { getServerAuthenticatedUser } from "../../core/auth/server-session";
 
 interface ProtectedLayoutProps {
   children: ReactNode;
 }
 
-export default function ProtectedLayout({ children }: ProtectedLayoutProps) {
-  return <AuthGuard>{children}</AuthGuard>;
+export default async function ProtectedLayout({ children }: ProtectedLayoutProps) {
+  const user = await getServerAuthenticatedUser();
+  if (!user) {
+    redirect("/login");
+  }
+
+  return <>{children}</>;
 }
