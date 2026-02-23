@@ -105,6 +105,10 @@ export interface Database {
       [_ in never]: never;
     };
     Functions: {
+      current_user_company_id: {
+        Args: Record<string, never>;
+        Returns: string;
+      };
       complete_owner_onboarding: {
         Args: {
           p_auth_user_id: string;
