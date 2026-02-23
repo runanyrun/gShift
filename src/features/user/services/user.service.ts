@@ -1,5 +1,11 @@
 import { TypedSupabaseClient } from "../../../core/db/supabase";
-import { CreateUserProfileInput, UserProfile } from "../types/user.types";
+import { withCompanyScope } from "../../../core/permissions/tenant-scope";
+import {
+  CompleteOwnerOnboardingInput,
+  CreateUserProfileInput,
+  OwnerOnboardingResult,
+  UserProfile,
+} from "../types/user.types";
 
 function mapUserRowToProfile(row: {
   id: string;
@@ -51,5 +57,69 @@ export class UserService {
     }
 
     return mapUserRowToProfile(data);
+  }
+
+  async completeOwnerOnboarding(
+    input: CompleteOwnerOnboardingInput,
+  ): Promise<OwnerOnboardingResult> {
+    const { data, error } = await this.supabase.rpc("complete_owner_onboarding", {
+      p_auth_user_id: input.authUserId,
+      p_email: input.email.trim().toLowerCase(),
+      p_first_name: input.firstName ?? null,
+      p_last_name: input.lastName ?? null,
+      p_company_name: input.companyName.trim(),
+      p_sector: input.sector ?? null,
+      p_country_code: input.countryCode ?? null,
+      p_currency_code: input.currencyCode ?? null,
+      p_timezone: input.timezone ?? null,
+      p_plan_type: input.planType ?? null,
+      p_subscription_status: input.subscriptionStatus ?? null,
+    });
+
+    if (error) {
+      throw new Error(`Failed to complete onboarding: ${error.message}`);
+    }
+
+    const row = Array.isArray(data) ? data[0] : data;
+    if (!row?.company_id || !row?.profile_id) {
+      throw new Error("Failed to complete onboarding: invalid RPC response.");
+    }
+
+    return {
+      companyId: row.company_id as string,
+      profileId: row.profile_id as string,
+    };
+  }
+
+  async getCurrentUserProfile(authUserId: string): Promise<UserProfile | null> {
+    const { data, error } = await this.supabase
+      .from("users")
+      .select("*")
+      .eq("auth_user_id", authUserId)
+      .maybeSingle();
+
+    if (error) {
+      throw new Error(`Failed to fetch user profile: ${error.message}`);
+    }
+
+    if (!data) {
+      return null;
+    }
+
+    return mapUserRowToProfile(data);
+  }
+
+  async listUsersByCompany(companyId: string): Promise<UserProfile[]> {
+    const companyScopedQuery = withCompanyScope(
+      this.supabase.from("users").select("*"),
+      companyId,
+    );
+    const { data, error } = await companyScopedQuery;
+
+    if (error) {
+      throw new Error(`Failed to list users by company: ${error.message}`);
+    }
+
+    return data.map(mapUserRowToProfile);
   }
 }
