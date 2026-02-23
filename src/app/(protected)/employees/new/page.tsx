@@ -1,17 +1,28 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createBrowserSupabaseClient } from "../../../../core/db/supabase";
 import { useMe } from "../../../../core/auth/useMe";
+import { canManage as canManagePermissions } from "../../../../core/auth/permissions";
 import { EmployeeForm } from "../../../../shared/components/employee-form";
 
 export default function EmployeeCreatePage() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const { data: me } = useMe();
-  const canSeeNotes =
-    me?.permissions.includes("management") || me?.permissions.includes("administration");
+  const canManage = canManagePermissions(me?.permissions ?? []);
+  const canSeeNotes = canManage;
+
+  useEffect(() => {
+    if (!canManage) {
+      router.replace("/employees?error=no-permission");
+    }
+  }, [canManage, router]);
+
+  if (!canManage) {
+    return <div>You don’t have permission to perform this action.</div>;
+  }
 
   return (
     <div>
@@ -51,7 +62,11 @@ export default function EmployeeCreatePage() {
               error?: string;
             };
             if (!response.ok || !body.ok || !body.data?.id) {
-              throw new Error(body.error ?? "Failed to create employee.");
+              throw new Error(
+                response.status === 401 || response.status === 403
+                  ? "You don’t have permission to perform this action."
+                  : (body.error ?? "Failed to create employee."),
+              );
             }
             router.push(`/employees/${body.data.id}`);
           } catch (submitError) {

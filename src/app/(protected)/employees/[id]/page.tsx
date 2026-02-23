@@ -4,6 +4,7 @@ import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { createBrowserSupabaseClient } from "../../../../core/db/supabase";
 import { useMe } from "../../../../core/auth/useMe";
+import { canManage as canManagePermissions } from "../../../../core/auth/permissions";
 import { EmployeeForm } from "../../../../shared/components/employee-form";
 
 interface EmployeePayload {
@@ -23,9 +24,9 @@ export default function EmployeeEditPage() {
   const [employee, setEmployee] = useState<EmployeePayload | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [inviteStatus, setInviteStatus] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
   const { data: me } = useMe();
-  const canManage =
-    me?.permissions.includes("management") || me?.permissions.includes("administration");
+  const canManage = canManagePermissions(me?.permissions ?? []);
   const canSeeNotes = canManage;
 
   async function loadEmployee() {
@@ -131,7 +132,7 @@ export default function EmployeeEditPage() {
           </div>
         )
       ) : (
-        <p>Account status visibility is restricted.</p>
+        <p>You don’t have permission to manage account access.</p>
       )}
 
       <EmployeeForm
@@ -144,27 +145,45 @@ export default function EmployeeEditPage() {
           notes: employee.notes ?? "",
         }}
         submitLabel="Save Employee"
-        error={null}
+        error={formError}
         showNotes={Boolean(canSeeNotes)}
+        readOnly={!canManage}
         onSubmit={async (values) => {
-          const supabase = createBrowserSupabaseClient();
-          const { data, error: sessionError } = await supabase.auth.getSession();
-          if (sessionError || !data.session?.access_token) {
-            throw new Error("Auth session missing.");
+          setFormError(null);
+          try {
+            if (!canManage) {
+              setFormError("You don’t have permission to perform this action.");
+              return;
+            }
+            const supabase = createBrowserSupabaseClient();
+            const { data, error: sessionError } = await supabase.auth.getSession();
+            if (sessionError || !data.session?.access_token) {
+              throw new Error("Auth session missing.");
+            }
+            const response = await fetch(`/api/employees/${id}`, {
+              method: "PATCH",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${data.session.access_token}`,
+              },
+              body: JSON.stringify(values),
+            });
+            const body = (await response.json()) as {
+              ok: boolean;
+              error?: string;
+              data?: EmployeePayload;
+            };
+            if (!response.ok || !body.ok || !body.data) {
+              throw new Error(body.error ?? "You don’t have permission to perform this action.");
+            }
+            setEmployee(body.data);
+          } catch (submitError) {
+            setFormError(
+              submitError instanceof Error
+                ? submitError.message
+                : "You don’t have permission to perform this action.",
+            );
           }
-          const response = await fetch(`/api/employees/${id}`, {
-            method: "PATCH",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${data.session.access_token}`,
-            },
-            body: JSON.stringify(values),
-          });
-          const body = (await response.json()) as { ok: boolean; error?: string; data?: EmployeePayload };
-          if (!response.ok || !body.ok || !body.data) {
-            throw new Error(body.error ?? "Failed to save employee.");
-          }
-          setEmployee(body.data);
         }}
       />
     </div>

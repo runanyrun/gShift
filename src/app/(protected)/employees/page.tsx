@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { createBrowserSupabaseClient } from "../../../core/db/supabase";
 import { useMe } from "../../../core/auth/useMe";
+import { canManage as canManagePermissions } from "../../../core/auth/permissions";
 
 interface EmployeeListItem {
   id: string;
@@ -16,9 +18,10 @@ interface EmployeeListItem {
 export default function EmployeesPage() {
   const [employees, setEmployees] = useState<EmployeeListItem[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const searchParams = useSearchParams();
   const { data: me } = useMe();
-  const canManage =
-    me?.permissions.includes("management") || me?.permissions.includes("administration");
+  const canManage = canManagePermissions(me?.permissions ?? []);
+  const noPermission = searchParams.get("error") === "no-permission";
 
   useEffect(() => {
     let mounted = true;
@@ -70,6 +73,7 @@ export default function EmployeesPage() {
   return (
     <div>
       <h1>Employees</h1>
+      {noPermission ? <p>You don’t have permission to perform this action.</p> : null}
       {me ? <p>Permissions: {me.permissions.join(", ") || "none"}</p> : null}
       <p>
         {canManage ? <Link href="/employees/new">Add Employee</Link> : "Read-only view"}
@@ -78,10 +82,17 @@ export default function EmployeesPage() {
       <ul>
         {employees.map((employee) => (
           <li key={employee.id}>
-            <Link href={`/employees/${employee.id}`}>
-              {employee.firstName} {employee.lastName}
-            </Link>{" "}
-            - {employee.email} ({employee.isActive ? "active" : "inactive"})
+            {canManage ? (
+              <Link href={`/employees/${employee.id}`}>
+                {employee.firstName} {employee.lastName}
+              </Link>
+            ) : (
+              <span>
+                {employee.firstName} {employee.lastName}
+              </span>
+            )}{" "}
+            - {employee.email} ({employee.isActive ? "active" : "inactive"}){" "}
+            {canManage ? <Link href={`/employees/${employee.id}`}>Edit</Link> : null}
           </li>
         ))}
       </ul>

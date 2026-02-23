@@ -2,6 +2,8 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { createBrowserSupabaseClient } from "../../core/db/supabase";
+import { canManage as canManagePermissions } from "../../core/auth/permissions";
+import { useMe } from "../../core/auth/useMe";
 
 interface DictionaryItem {
   id: string;
@@ -18,6 +20,8 @@ export function SettingsDictionaryPage({ title, endpoint }: SettingsDictionaryPa
   const [items, setItems] = useState<DictionaryItem[]>([]);
   const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const { data: me } = useMe();
+  const canManage = canManagePermissions(me?.permissions ?? []);
 
   async function authorizedFetch(path: string, init?: RequestInit) {
     const supabase = createBrowserSupabaseClient();
@@ -59,6 +63,10 @@ export function SettingsDictionaryPage({ title, endpoint }: SettingsDictionaryPa
   async function onCreate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
+    if (!canManage) {
+      setError("You don’t have permission to perform this action.");
+      return;
+    }
     try {
       const response = await authorizedFetch(endpoint, {
         method: "POST",
@@ -66,7 +74,11 @@ export function SettingsDictionaryPage({ title, endpoint }: SettingsDictionaryPa
       });
       const body = (await response.json()) as { ok: boolean; error?: string };
       if (!response.ok || !body.ok) {
-        throw new Error(body.error ?? `Failed to create ${title} item.`);
+        throw new Error(
+          response.status === 401 || response.status === 403
+            ? "You don’t have permission to perform this action."
+            : (body.error ?? `Failed to create ${title} item.`),
+        );
       }
       setName("");
       await load();
@@ -77,6 +89,10 @@ export function SettingsDictionaryPage({ title, endpoint }: SettingsDictionaryPa
 
   async function onToggle(item: DictionaryItem) {
     setError(null);
+    if (!canManage) {
+      setError("You don’t have permission to perform this action.");
+      return;
+    }
     try {
       const response = await authorizedFetch(`${endpoint}/${item.id}`, {
         method: "PATCH",
@@ -84,7 +100,11 @@ export function SettingsDictionaryPage({ title, endpoint }: SettingsDictionaryPa
       });
       const body = (await response.json()) as { ok: boolean; error?: string };
       if (!response.ok || !body.ok) {
-        throw new Error(body.error ?? `Failed to update ${title} item.`);
+        throw new Error(
+          response.status === 401 || response.status === 403
+            ? "You don’t have permission to perform this action."
+            : (body.error ?? `Failed to update ${title} item.`),
+        );
       }
       await load();
     } catch (toggleError) {
@@ -97,21 +117,25 @@ export function SettingsDictionaryPage({ title, endpoint }: SettingsDictionaryPa
       <h1>{title}</h1>
       {error ? <p>{error}</p> : null}
 
-      <form onSubmit={onCreate}>
-        <label>
-          Name
-          <input value={name} onChange={(event) => setName(event.target.value)} required />
-        </label>
-        <button type="submit">Add</button>
-      </form>
+      {canManage ? (
+        <form onSubmit={onCreate}>
+          <label>
+            Name
+            <input value={name} onChange={(event) => setName(event.target.value)} required />
+          </label>
+          <button type="submit">Add</button>
+        </form>
+      ) : null}
 
       <ul>
         {items.map((item) => (
           <li key={item.id}>
             {item.name} ({item.isActive ? "active" : "inactive"}){" "}
-            <button type="button" onClick={() => onToggle(item)}>
-              Toggle Active
-            </button>
+            {canManage ? (
+              <button type="button" onClick={() => onToggle(item)}>
+                Toggle Active
+              </button>
+            ) : null}
           </li>
         ))}
       </ul>
