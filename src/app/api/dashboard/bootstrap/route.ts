@@ -1,16 +1,30 @@
 import { NextResponse } from "next/server";
+import { createSupabaseClientWithAccessToken } from "../../../../core/db/supabase";
 import { DashboardBootstrapService } from "../../../../features/dashboard/services/dashboard-bootstrap.service";
 
 function resolveStatus(errorMessage: string): number {
-  if (errorMessage.includes("Authenticated user context was not found")) {
+  if (
+    errorMessage.includes("Authenticated user context was not found") ||
+    errorMessage.includes("Auth session missing")
+  ) {
     return 401;
   }
   return 400;
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const service = new DashboardBootstrapService();
+    const authHeader = request.headers.get("authorization");
+    const accessToken = authHeader?.startsWith("Bearer ")
+      ? authHeader.slice("Bearer ".length)
+      : null;
+
+    if (!accessToken) {
+      return NextResponse.json({ error: "Missing access token." }, { status: 401 });
+    }
+
+    const supabase = createSupabaseClientWithAccessToken(accessToken);
+    const service = new DashboardBootstrapService(supabase);
     const payload = await service.getBootstrap();
     return NextResponse.json(payload, { status: 200 });
   } catch (error) {

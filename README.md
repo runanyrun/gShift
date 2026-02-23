@@ -73,6 +73,16 @@ Dashboard bootstrap API:
 - `GET /api/dashboard/bootstrap`
 - Returns authenticated tenant-scoped user/company/metrics payload
 
+## Manual Ops Checklist
+
+1. Supabase SQL Editor'da çalıştır:
+   - `supabase/migrations/0002_onboarding_and_rls.sql`
+2. Signup UI:
+   - `src/app/signup/page.tsx`
+   - `202` durumunda `requiresEmailVerification` mesajı gösterir.
+3. Protected login redirect hedefi:
+   - `src/app/login/page.tsx`
+
 ## Multi-Tenant Isolation Pattern
 
 - Helper: `src/core/permissions/tenant-scope.ts`
