@@ -5,9 +5,13 @@
 Create `.env.local`:
 
 ```bash
-NEXT_PUBLIC_SUPABASE_URL=your-project-url
+# Do NOT commit real keys. Replace with your project URL.
+SUPABASE_URL=https://your-project-id.supabase.co
+NEXT_PUBLIC_SUPABASE_URL=https://your-project-id.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 ```
+
+`SUPABASE_URL` cannot be a placeholder and must match `https://<project-ref>.supabase.co`; app/test boot fails fast if invalid.
 
 ## Signup Onboarding Flow
 
