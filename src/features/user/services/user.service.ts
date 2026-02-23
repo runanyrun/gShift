@@ -122,4 +122,18 @@ export class UserService {
 
     return data.map(mapUserRowToProfile);
   }
+
+  async countUsersByCompany(companyId: string): Promise<number> {
+    const companyScopedQuery = withCompanyScope(
+      this.supabase.from("users").select("*", { count: "exact", head: true }),
+      companyId,
+    );
+    const { count, error } = await companyScopedQuery;
+
+    if (error) {
+      throw new Error(`Failed to count users by company: ${error.message}`);
+    }
+
+    return count ?? 0;
+  }
 }
