@@ -55,13 +55,35 @@ async function main() {
   pass("Cross-tenant insert is blocked by RLS.");
 
   const rawClient = tenantAClient as any;
-  const { error: immutableCompanyUpdateError } = await rawClient
+  const { data: immutableUpdateRows, error: immutableCompanyUpdateError } = await rawClient
     .from("shifts")
     .update({ company_id: tenantB.companyId })
-    .eq("id", createdShift.id);
-  if (!immutableCompanyUpdateError) {
-    fail("company_id was unexpectedly mutable on shifts.");
+    .eq("id", createdShift.id)
+    .select("id, company_id");
+
+  if (immutableCompanyUpdateError) {
+    pass("company_id mutation is blocked with RLS/update rules.");
+    return;
   }
+
+  if (!Array.isArray(immutableUpdateRows) || immutableUpdateRows.length > 0) {
+    fail("company_id update unexpectedly affected rows.");
+  }
+
+  const { data: unchangedShift, error: unchangedShiftError } = await tenantAClient
+    .from("shifts")
+    .select("id, company_id")
+    .eq("id", createdShift.id)
+    .single();
+  if (unchangedShiftError || !unchangedShift) {
+    fail(
+      `Could not verify shift after blocked company_id update: ${unchangedShiftError?.message ?? "no row"}`,
+    );
+  }
+  if (unchangedShift.company_id !== tenantA.companyId) {
+    fail("company_id changed unexpectedly after forbidden update.");
+  }
+
   pass("company_id is immutable through tenant-safe RLS/update rules.");
 }
 
