@@ -14,7 +14,7 @@ function AppShellContent({ children }: { children: ReactNode }) {
         {data ? (
           <p>
             User: {data.user.name ?? data.user.email ?? data.user.id} | Tenant:{" "}
-            {data.tenant.name ?? data.tenant.id}
+            {data.tenant ? data.tenant.name ?? data.tenant.id : "not-connected"}
           </p>
         ) : null}
       </header>
