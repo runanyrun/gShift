@@ -97,7 +97,6 @@ export default function MyDashboardPage() {
       mounted = false;
     };
   }, [me, target]);
-
   if (loading || !me) {
     return <div>Loading dashboard...</div>;
   }
