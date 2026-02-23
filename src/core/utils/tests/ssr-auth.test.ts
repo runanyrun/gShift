@@ -1,15 +1,16 @@
+/**
+ * Local test setup:
+ * 1. Copy `.env.test.local.example` -> `.env.test.local`
+ * 2. Fill dummy accounts for TENANT_A/B and EDGE_CASE
+ * 3. Run all tests: npm run test:workflow
+ * 4. Check console output for pass/fail
+ */
+import { fail, pass } from "./test-helpers";
+
 interface HttpResult {
   status: number;
   location: string | null;
   bodyText: string;
-}
-
-function pass(message: string) {
-  console.log(`PASS: ${message}`);
-}
-
-function fail(message: string): never {
-  throw new Error(`FAIL: ${message}`);
 }
 
 async function request(url: string, options?: RequestInit): Promise<HttpResult> {
