@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createBrowserSupabaseClient } from "../../../core/db/supabase";
 import {
@@ -110,6 +111,12 @@ export default function DashboardPage() {
   return (
     <div>
       <h1>Tenant Dashboard</h1>
+      <nav>
+        <Link href="/employees">Employees</Link> |{" "}
+        <Link href="/settings/job-titles">Job Titles</Link> |{" "}
+        <Link href="/settings/departments">Departments</Link> |{" "}
+        <Link href="/settings/locations">Locations</Link>
+      </nav>
       <button type="button" onClick={onSignOut} disabled={signingOut}>
         {signingOut ? "Signing out..." : "Sign out"}
       </button>

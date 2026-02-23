@@ -100,6 +100,247 @@ export interface Database {
         };
         Relationships: [];
       };
+      job_titles: {
+        Row: {
+          id: string;
+          tenant_id: string;
+          name: string;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          tenant_id: string;
+          name: string;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          tenant_id?: string;
+          name?: string;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      departments: {
+        Row: {
+          id: string;
+          tenant_id: string;
+          name: string;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          tenant_id: string;
+          name: string;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          tenant_id?: string;
+          name?: string;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      locations: {
+        Row: {
+          id: string;
+          tenant_id: string;
+          name: string;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          tenant_id: string;
+          name: string;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          tenant_id?: string;
+          name?: string;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      employees: {
+        Row: {
+          id: string;
+          tenant_id: string;
+          first_name: string;
+          last_name: string;
+          email: string;
+          phone1: string | null;
+          phone2: string | null;
+          gender: string | null;
+          birth_date: string | null;
+          is_active: boolean;
+          job_title_id: string | null;
+          department_id: string | null;
+          start_date: string | null;
+          end_date: string | null;
+          payroll_id: string | null;
+          default_break_minutes: number | null;
+          default_shift_hours: number | null;
+          notes: string | null;
+          user_id: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          tenant_id: string;
+          first_name: string;
+          last_name: string;
+          email: string;
+          phone1?: string | null;
+          phone2?: string | null;
+          gender?: string | null;
+          birth_date?: string | null;
+          is_active?: boolean;
+          job_title_id?: string | null;
+          department_id?: string | null;
+          start_date?: string | null;
+          end_date?: string | null;
+          payroll_id?: string | null;
+          default_break_minutes?: number | null;
+          default_shift_hours?: number | null;
+          notes?: string | null;
+          user_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          tenant_id?: string;
+          first_name?: string;
+          last_name?: string;
+          email?: string;
+          phone1?: string | null;
+          phone2?: string | null;
+          gender?: string | null;
+          birth_date?: string | null;
+          is_active?: boolean;
+          job_title_id?: string | null;
+          department_id?: string | null;
+          start_date?: string | null;
+          end_date?: string | null;
+          payroll_id?: string | null;
+          default_break_minutes?: number | null;
+          default_shift_hours?: number | null;
+          notes?: string | null;
+          user_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      employee_locations: {
+        Row: {
+          tenant_id: string;
+          employee_id: string;
+          location_id: string;
+          created_at: string;
+        };
+        Insert: {
+          tenant_id: string;
+          employee_id: string;
+          location_id: string;
+          created_at?: string;
+        };
+        Update: {
+          tenant_id?: string;
+          employee_id?: string;
+          location_id?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      employee_invites: {
+        Row: {
+          id: string;
+          tenant_id: string;
+          employee_id: string;
+          email: string;
+          token_hash: string;
+          expires_at: string;
+          status: "pending" | "accepted" | "revoked" | "expired";
+          created_by: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          tenant_id: string;
+          employee_id: string;
+          email: string;
+          token_hash: string;
+          expires_at: string;
+          status: "pending" | "accepted" | "revoked" | "expired";
+          created_by: string;
+          created_at?: string;
+        };
+        Update: {
+          tenant_id?: string;
+          employee_id?: string;
+          email?: string;
+          token_hash?: string;
+          expires_at?: string;
+          status?: "pending" | "accepted" | "revoked" | "expired";
+          created_by?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      employee_permissions: {
+        Row: {
+          tenant_id: string;
+          employee_id: string;
+          permission_key:
+            | "administration"
+            | "management"
+            | "report_management"
+            | "time_off_management"
+            | "timesheet_management";
+          created_at: string;
+        };
+        Insert: {
+          tenant_id: string;
+          employee_id: string;
+          permission_key:
+            | "administration"
+            | "management"
+            | "report_management"
+            | "time_off_management"
+            | "timesheet_management";
+          created_at?: string;
+        };
+        Update: {
+          tenant_id?: string;
+          employee_id?: string;
+          permission_key?:
+            | "administration"
+            | "management"
+            | "report_management"
+            | "time_off_management"
+            | "timesheet_management";
+          created_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -126,6 +367,23 @@ export interface Database {
         Returns: {
           company_id: string;
           profile_id: string;
+        }[];
+      };
+      is_management_user: {
+        Args: Record<string, never>;
+        Returns: boolean;
+      };
+      get_my_employee: {
+        Args: Record<string, never>;
+        Returns: Database["public"]["Tables"]["employees"]["Row"][];
+      };
+      accept_employee_invite: {
+        Args: {
+          p_raw_token: string;
+        };
+        Returns: {
+          employee_id: string;
+          tenant_id: string;
         }[];
       };
     };
