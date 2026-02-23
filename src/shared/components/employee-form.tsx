@@ -15,6 +15,7 @@ interface EmployeeFormProps {
   initialValues: EmployeeFormValues;
   submitLabel: string;
   error: string | null;
+  showNotes?: boolean;
   onSubmit(values: EmployeeFormValues): Promise<void>;
 }
 
@@ -22,6 +23,7 @@ export function EmployeeForm({
   initialValues,
   submitLabel,
   error,
+  showNotes = true,
   onSubmit,
 }: EmployeeFormProps) {
   const [values, setValues] = useState<EmployeeFormValues>(initialValues);
@@ -87,12 +89,16 @@ export function EmployeeForm({
         />
       </label>
 
-      <h3>Notes</h3>
-      <textarea
-        value={values.notes}
-        onChange={(event) => setValues({ ...values, notes: event.target.value })}
-        rows={5}
-      />
+      {showNotes ? (
+        <>
+          <h3>Notes</h3>
+          <textarea
+            value={values.notes}
+            onChange={(event) => setValues({ ...values, notes: event.target.value })}
+            rows={5}
+          />
+        </>
+      ) : null}
 
       <button type="submit" disabled={submitting}>
         {submitting ? "Saving..." : submitLabel}

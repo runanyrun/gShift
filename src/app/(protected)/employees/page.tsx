@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { createBrowserSupabaseClient } from "../../../core/db/supabase";
+import { useMe } from "../../../core/auth/useMe";
 
 interface EmployeeListItem {
   id: string;
@@ -15,6 +16,9 @@ interface EmployeeListItem {
 export default function EmployeesPage() {
   const [employees, setEmployees] = useState<EmployeeListItem[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const { data: me } = useMe();
+  const canManage =
+    me?.permissions.includes("management") || me?.permissions.includes("administration");
 
   useEffect(() => {
     let mounted = true;
@@ -66,8 +70,9 @@ export default function EmployeesPage() {
   return (
     <div>
       <h1>Employees</h1>
+      {me ? <p>Permissions: {me.permissions.join(", ") || "none"}</p> : null}
       <p>
-        <Link href="/employees/new">Add Employee</Link>
+        {canManage ? <Link href="/employees/new">Add Employee</Link> : "Read-only view"}
       </p>
       {error ? <p>{error}</p> : null}
       <ul>

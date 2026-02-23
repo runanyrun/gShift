@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useMe } from "../../core/auth/useMe";
 import { createBrowserSupabaseClient } from "../../core/db/supabase";
 
 export default function AcceptInvitePage() {
@@ -10,6 +11,7 @@ export default function AcceptInvitePage() {
   const token = searchParams.get("token") ?? "";
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [result, setResult] = useState<string | null>(null);
+  const { refresh } = useMe();
 
   useEffect(() => {
     let mounted = true;
@@ -54,6 +56,7 @@ export default function AcceptInvitePage() {
       if (!response.ok || !body.ok) {
         throw new Error(body.error ?? "Invite acceptance failed.");
       }
+      await refresh();
       setResult("Invite accepted. Your employee profile is linked.");
     } catch (acceptError) {
       setResult(acceptError instanceof Error ? acceptError.message : "Invite acceptance failed.");

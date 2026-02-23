@@ -3,11 +3,15 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createBrowserSupabaseClient } from "../../../../core/db/supabase";
+import { useMe } from "../../../../core/auth/useMe";
 import { EmployeeForm } from "../../../../shared/components/employee-form";
 
 export default function EmployeeCreatePage() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
+  const { data: me } = useMe();
+  const canSeeNotes =
+    me?.permissions.includes("management") || me?.permissions.includes("administration");
 
   return (
     <div>
@@ -23,6 +27,7 @@ export default function EmployeeCreatePage() {
         }}
         submitLabel="Create Employee"
         error={error}
+        showNotes={Boolean(canSeeNotes)}
         onSubmit={async (values) => {
           setError(null);
           try {

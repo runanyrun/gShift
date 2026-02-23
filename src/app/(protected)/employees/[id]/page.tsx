@@ -3,6 +3,7 @@
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { createBrowserSupabaseClient } from "../../../../core/db/supabase";
+import { useMe } from "../../../../core/auth/useMe";
 import { EmployeeForm } from "../../../../shared/components/employee-form";
 
 interface EmployeePayload {
@@ -22,6 +23,10 @@ export default function EmployeeEditPage() {
   const [employee, setEmployee] = useState<EmployeePayload | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [inviteStatus, setInviteStatus] = useState<string | null>(null);
+  const { data: me } = useMe();
+  const canManage =
+    me?.permissions.includes("management") || me?.permissions.includes("administration");
+  const canSeeNotes = canManage;
 
   async function loadEmployee() {
     const supabase = createBrowserSupabaseClient();
@@ -113,16 +118,20 @@ export default function EmployeeEditPage() {
       </h1>
 
       <h2>Access & Permissions</h2>
-      {employee.userId ? (
-        <p>Linked to user: {employee.userId}</p>
+      {canManage ? (
+        employee.userId ? (
+          <p>Account status: linked ({employee.userId})</p>
+        ) : (
+          <div>
+            <p>Account status: unlinked</p>
+            <button type="button" onClick={sendInvite}>
+              Send Invite
+            </button>
+            {inviteStatus ? <p>{inviteStatus}</p> : null}
+          </div>
+        )
       ) : (
-        <div>
-          <p>No account linked</p>
-          <button type="button" onClick={sendInvite}>
-            Send Invite
-          </button>
-          {inviteStatus ? <p>{inviteStatus}</p> : null}
-        </div>
+        <p>Account status visibility is restricted.</p>
       )}
 
       <EmployeeForm
@@ -136,6 +145,7 @@ export default function EmployeeEditPage() {
         }}
         submitLabel="Save Employee"
         error={null}
+        showNotes={Boolean(canSeeNotes)}
         onSubmit={async (values) => {
           const supabase = createBrowserSupabaseClient();
           const { data, error: sessionError } = await supabase.auth.getSession();
