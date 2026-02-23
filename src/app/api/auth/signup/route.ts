@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { signupWithCompany } from "../../../../features/user/services/signup-onboarding.service";
+import { AuthService } from "../../../../features/auth/services/auth.service";
 
 interface SignupRequestBody {
   email: string;
@@ -28,7 +28,8 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const result = await signupWithCompany({
+    const authService = new AuthService();
+    const result = await authService.signUpAndOnboardOwner({
       email: body.email,
       password: body.password,
       firstName: body.firstName ?? null,
@@ -42,7 +43,9 @@ export async function POST(request: NextRequest) {
       subscriptionStatus: body.subscriptionStatus ?? null,
     });
 
-    return NextResponse.json(result, { status: 201 });
+    return NextResponse.json(result, {
+      status: result.requiresEmailVerification ? 202 : 201,
+    });
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Unexpected sign-up failure.";

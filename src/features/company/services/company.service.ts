@@ -1,4 +1,5 @@
 import { TypedSupabaseClient } from "../../../core/db/supabase";
+import { withCompanyScope } from "../../../core/permissions/tenant-scope";
 import { Company, CreateCompanyInput } from "../types/company.types";
 
 function mapCompanyRowToCompany(row: {
@@ -51,6 +52,43 @@ export class CompanyService {
 
     if (error) {
       throw new Error(`Failed to create company: ${error.message}`);
+    }
+
+    return mapCompanyRowToCompany(data);
+  }
+
+  async getCompanyById(companyId: string): Promise<Company | null> {
+    const { data, error } = await this.supabase
+      .from("companies")
+      .select("*")
+      .eq("id", companyId)
+      .maybeSingle();
+
+    if (error) {
+      throw new Error(`Failed to fetch company: ${error.message}`);
+    }
+
+    if (!data) {
+      return null;
+    }
+
+    return mapCompanyRowToCompany(data);
+  }
+
+  async getScopedCompany(companyId: string): Promise<Company | null> {
+    const scopedQuery = withCompanyScope(
+      this.supabase.from("companies").select("*"),
+      companyId,
+      "id",
+    );
+    const { data, error } = await scopedQuery.maybeSingle();
+
+    if (error) {
+      throw new Error(`Failed to fetch scoped company: ${error.message}`);
+    }
+
+    if (!data) {
+      return null;
     }
 
     return mapCompanyRowToCompany(data);

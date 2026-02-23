@@ -33,3 +33,22 @@ export interface SignupWithCompanyInput {
   planType?: string | null;
   subscriptionStatus?: string | null;
 }
+
+export interface CompleteOwnerOnboardingInput {
+  authUserId: string;
+  email: string;
+  firstName?: string | null;
+  lastName?: string | null;
+  companyName: string;
+  sector?: string | null;
+  countryCode?: string | null;
+  currencyCode?: string | null;
+  timezone?: string | null;
+  planType?: string | null;
+  subscriptionStatus?: string | null;
+}
+
+export interface OwnerOnboardingResult {
+  companyId: string;
+  profileId: string;
+}
