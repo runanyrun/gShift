@@ -48,3 +48,21 @@ NEXT_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
 
 Use this mode carefully due to live/free-plan limits.
 
+## If Supabase Local Is Broken
+
+In most cases, one command is enough:
+
+```bash
+npm run verify:local
+```
+
+It runs a self-healing wrapper that checks Docker + Supabase CLI, repairs broken local containers, and restarts the stack when needed.
+
+Manual recovery (only if needed):
+
+```bash
+supabase stop --no-backup
+docker ps -a | grep supabase
+docker rm -f <stale-supabase-container-id>
+supabase start
+```
