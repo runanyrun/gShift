@@ -22,10 +22,11 @@ function expectThrows(label: string, fn: () => void, expectedText: string) {
 }
 
 function main() {
-  const url = requireEnv("NEXT_PUBLIC_SUPABASE_URL");
+  const url = process.env.SUPABASE_URL ?? requireEnv("NEXT_PUBLIC_SUPABASE_URL");
   const anonKey = requireEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY");
 
   const valid = validateEnv({
+    SUPABASE_URL: url,
     NEXT_PUBLIC_SUPABASE_URL: url,
     NEXT_PUBLIC_SUPABASE_ANON_KEY: anonKey,
   });
@@ -34,21 +35,55 @@ function main() {
   }
   pass("Valid environment parses successfully.");
 
+  const validWithServerAnonKey = validateEnv({
+    SUPABASE_URL: url,
+    NEXT_PUBLIC_SUPABASE_URL: url,
+    SUPABASE_ANON_KEY: anonKey,
+  });
+  if (!validWithServerAnonKey.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    fail("SUPABASE_ANON_KEY fallback did not populate NEXT_PUBLIC_SUPABASE_ANON_KEY.");
+  }
+  pass("SUPABASE_ANON_KEY fallback works.");
+
   expectThrows(
-    "Invalid URL should fail-fast",
+    "Placeholder URL should fail-fast",
     () =>
       validateEnv({
-        NEXT_PUBLIC_SUPABASE_URL: "not-a-url",
+        SUPABASE_URL: "https://your-project-id.supabase.co",
+        NEXT_PUBLIC_SUPABASE_URL: "https://your-project-id.supabase.co",
         NEXT_PUBLIC_SUPABASE_ANON_KEY: "anon-key",
       }),
-    "NEXT_PUBLIC_SUPABASE_URL",
+    "SUPABASE_URL is a placeholder or invalid",
+  );
+
+  expectThrows(
+    "Non-Supabase URL should fail-fast",
+    () =>
+      validateEnv({
+        SUPABASE_URL: "https://example.com",
+        NEXT_PUBLIC_SUPABASE_URL: "https://example.com",
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: "anon-key",
+      }),
+    "SUPABASE_URL is a placeholder or invalid",
+  );
+
+  expectThrows(
+    "Missing SUPABASE_URL should fail-fast",
+    () =>
+      validateEnv({
+        SUPABASE_URL: "",
+        NEXT_PUBLIC_SUPABASE_URL: "",
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: "anon-key",
+      }),
+    "SUPABASE_URL is not set",
   );
 
   expectThrows(
     "Missing anon key should fail-fast",
     () =>
       validateEnv({
-        NEXT_PUBLIC_SUPABASE_URL: "https://example.com",
+        SUPABASE_URL: "https://ocdaibqbmvppzrdeneqh.supabase.co",
+        NEXT_PUBLIC_SUPABASE_URL: "https://ocdaibqbmvppzrdeneqh.supabase.co",
         NEXT_PUBLIC_SUPABASE_ANON_KEY: "",
       }),
     "NEXT_PUBLIC_SUPABASE_ANON_KEY",

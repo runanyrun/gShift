@@ -11,7 +11,7 @@ fi
 print_instructions() {
   echo "[db:push] Required action:"
   echo "[db:push]   Option A: Install Supabase CLI and run: supabase db push"
-  echo "[db:push]   Option B: Run supabase/migrations/0005_employees_foundation.sql in Supabase SQL Editor"
+  echo "[db:push]   Option B: Run migrations in Supabase SQL Editor (at least 0005 + 0006)"
   echo "[db:push] Notes:"
   echo "[db:push]   - Supabase CLI commands may require a linked project (supabase link)."
   echo "[db:push]   - CI setups typically use SUPABASE_ACCESS_TOKEN and SUPABASE_DB_PASSWORD."

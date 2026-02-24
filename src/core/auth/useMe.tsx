@@ -7,6 +7,13 @@ import { MeResponseData } from "./me.types";
 let meCache: MeResponseData | null = null;
 let mePromise: Promise<MeResponseData> | null = null;
 
+function normalizeMeData(input: MeResponseData): MeResponseData {
+  return {
+    ...input,
+    permissions: input.permissions ?? null,
+  };
+}
+
 export async function fetchMe(force = false): Promise<MeResponseData> {
   if (!force && meCache) {
     return meCache;
@@ -17,16 +24,17 @@ export async function fetchMe(force = false): Promise<MeResponseData> {
 
   mePromise = (async () => {
     const supabase = createBrowserSupabaseClient();
-    const { data, error: sessionError } = await supabase.auth.getSession();
-    if (sessionError || !data.session?.access_token) {
-      throw new Error("Auth session missing.");
-    }
+    const { data } = await supabase.auth.getSession();
+    const accessToken = data.session?.access_token ?? null;
 
     const response = await fetch("/api/me", {
       method: "GET",
-      headers: {
-        Authorization: `Bearer ${data.session.access_token}`,
-      },
+      credentials: "include",
+      headers: accessToken
+        ? {
+            Authorization: `Bearer ${accessToken}`,
+          }
+        : undefined,
     });
     const body = (await response.json()) as {
       ok: boolean;
@@ -42,8 +50,9 @@ export async function fetchMe(force = false): Promise<MeResponseData> {
       throw new Error(message);
     }
 
-    meCache = body.data;
-    return body.data;
+    const resolvedData = normalizeMeData(body.data);
+    meCache = resolvedData;
+    return resolvedData;
   })();
 
   try {
@@ -61,7 +70,7 @@ interface UseMeState {
 }
 
 function useMeState(): UseMeState {
-  const [data, setData] = useState<MeResponseData | null>(meCache);
+  const [data, setData] = useState<MeResponseData | null>(meCache ? normalizeMeData(meCache) : null);
   const [loading, setLoading] = useState<boolean>(!meCache);
   const [error, setError] = useState<string | null>(null);
 
@@ -70,7 +79,7 @@ function useMeState(): UseMeState {
     setError(null);
     try {
       const freshData = await fetchMe(true);
-      setData(freshData);
+      setData(normalizeMeData(freshData));
     } catch (refreshError) {
       setError(refreshError instanceof Error ? refreshError.message : "Failed to refresh /api/me.");
     } finally {
@@ -92,7 +101,7 @@ function useMeState(): UseMeState {
         if (!mounted) {
           return;
         }
-        setData(result);
+        setData(normalizeMeData(result));
       })
       .catch((fetchError) => {
         if (!mounted) {

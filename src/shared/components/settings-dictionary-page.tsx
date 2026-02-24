@@ -21,7 +21,7 @@ export function SettingsDictionaryPage({ title, endpoint }: SettingsDictionaryPa
   const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const { data: me } = useMe();
-  const canManage = canManagePermissions(me?.permissions ?? []);
+  const canManage = canManagePermissions(me?.permissions);
 
   async function authorizedFetch(path: string, init?: RequestInit) {
     const supabase = createBrowserSupabaseClient();

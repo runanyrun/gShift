@@ -7,8 +7,9 @@ export interface MeResponseData {
   tenant: {
     id: string;
     name: string | null;
+    slug?: string | null;
   } | null;
-  permissions: string[];
+  permissions: string[] | Record<string, unknown> | null;
   employee: {
     id: string;
     first_name: string;

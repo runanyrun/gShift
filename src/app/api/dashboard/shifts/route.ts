@@ -1,44 +1,19 @@
-import { NextResponse } from "next/server";
-import { createSupabaseClientWithAccessToken } from "../../../../core/db/supabase";
+import { NextRequest, NextResponse } from "next/server";
+import { authenticateApiRequest } from "../../../../core/auth/api-auth";
+import { toApiErrorResponse } from "../../../../core/auth/api-error-response";
+import { applyResponseCookies } from "../../../../core/auth/supabase-server-client";
 import { DashboardController } from "../../../../features/dashboard/dashboard.controller";
 
-function resolveStatus(errorMessage: string): number {
-  if (
-    errorMessage.includes("Authenticated user context was not found") ||
-    errorMessage.includes("Auth session missing") ||
-    errorMessage.includes("Authenticated user mismatch")
-  ) {
-    return 401;
-  }
-  return 400;
-}
-
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
+  let authResponse: NextResponse | undefined;
   try {
-    const authHeader = request.headers.get("authorization");
-    const accessToken = authHeader?.startsWith("Bearer ")
-      ? authHeader.slice("Bearer ".length)
-      : null;
-
-    if (!accessToken) {
-      return NextResponse.json({ error: "Missing access token." }, { status: 401 });
-    }
-
-    const supabase = createSupabaseClientWithAccessToken(accessToken);
-    const { data: authData, error: authError } = await supabase.auth.getUser();
-    if (authError || !authData.user) {
-      return NextResponse.json(
-        { error: "Invalid or expired access token." },
-        { status: 401 },
-      );
-    }
-
+    const auth = await authenticateApiRequest(request);
+    authResponse = auth.response;
+    const { supabase, authUserId } = auth;
     const controller = new DashboardController(supabase);
-    const payload = await controller.getShiftsForCurrentUser(authData.user.id);
-    return NextResponse.json(payload, { status: 200 });
+    const payload = await controller.getShiftsForCurrentUser(authUserId);
+    return applyResponseCookies(authResponse, NextResponse.json(payload, { status: 200 }));
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Failed to load dashboard shifts.";
-    return NextResponse.json({ error: message }, { status: resolveStatus(message) });
+    return applyResponseCookies(authResponse, toApiErrorResponse(error, "Failed to load dashboard shifts."));
   }
 }

@@ -527,7 +527,7 @@ export class EmployeesRepository {
       p_raw_token: rawToken,
     });
     if (error) {
-      throw new Error(`Failed to accept invite: ${error.message}`);
+      throw new Error(error.message);
     }
     const row = Array.isArray(data) ? data[0] : null;
     if (!row?.employee_id || !row?.tenant_id) {

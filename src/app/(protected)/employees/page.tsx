@@ -5,7 +5,11 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { createBrowserSupabaseClient } from "../../../core/db/supabase";
 import { useMe } from "../../../core/auth/useMe";
-import { canManage as canManagePermissions } from "../../../core/auth/permissions";
+import {
+  canManage as canManagePermissions,
+  normalizePermissionKey,
+  permissionsLoaded,
+} from "../../../core/auth/permissions";
 
 interface EmployeeListItem {
   id: string;
@@ -20,8 +24,36 @@ export default function EmployeesPage() {
   const [error, setError] = useState<string | null>(null);
   const searchParams = useSearchParams();
   const { data: me } = useMe();
-  const canManage = canManagePermissions(me?.permissions ?? []);
-  const noPermission = searchParams.get("error") === "no-permission";
+  const canManage = canManagePermissions(me?.permissions);
+  const permissionsAreLoaded = permissionsLoaded(me?.permissions);
+  const showNoPermission =
+    searchParams.get("error") === "no-permission" &&
+    permissionsAreLoaded &&
+    !canManage;
+  const permissionsText = (() => {
+    if (!permissionsAreLoaded) {
+      return "loading...";
+    }
+
+    const permissions = me?.permissions;
+    if (Array.isArray(permissions)) {
+      return permissions.join(", ") || "none";
+    }
+
+    if (permissions && typeof permissions === "object") {
+      const enabled = Array.from(
+        new Set(
+          Object.entries(permissions)
+        .filter(([, value]) => value === true)
+            .map(([key]) => normalizePermissionKey(key))
+            .filter((key) => key.length > 0),
+        ),
+      );
+      return enabled.join(", ") || "none";
+    }
+
+    return "none";
+  })();
 
   useEffect(() => {
     let mounted = true;
@@ -73,8 +105,8 @@ export default function EmployeesPage() {
   return (
     <div>
       <h1>Employees</h1>
-      {noPermission ? <p>You don’t have permission to perform this action.</p> : null}
-      {me ? <p>Permissions: {me.permissions.join(", ") || "none"}</p> : null}
+      {showNoPermission ? <p>You don’t have permission to perform this action.</p> : null}
+      {me ? <p>Permissions: {permissionsText}</p> : null}
       <p>
         {canManage ? <Link href="/employees/new">Add Employee</Link> : "Read-only view"}
       </p>

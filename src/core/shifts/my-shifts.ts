@@ -6,6 +6,10 @@ export interface MyShiftItem {
   user_id: string;
   starts_at: string;
   ends_at: string;
+  acceptance_status: "pending" | "accepted" | "declined";
+  responded_at: string | null;
+  responded_by: string | null;
+  response_note: string | null;
   created_by: string;
   created_at: string;
 }
@@ -45,7 +49,9 @@ export async function getMyUpcomingShifts({
 
   const { data, error } = await supabase
     .from("shifts")
-    .select("id, company_id, user_id, starts_at, ends_at, created_by, created_at")
+    .select(
+      "id, company_id, user_id, starts_at, ends_at, acceptance_status, responded_at, responded_by, response_note, created_by, created_at",
+    )
     .eq("company_id", tenantId)
     .eq("user_id", profile.id)
     .gte("starts_at", from)

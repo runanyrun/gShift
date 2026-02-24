@@ -26,7 +26,7 @@ export default function EmployeeEditPage() {
   const [inviteStatus, setInviteStatus] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const { data: me } = useMe();
-  const canManage = canManagePermissions(me?.permissions ?? []);
+  const canManage = canManagePermissions(me?.permissions);
   const canSeeNotes = canManage;
 
   async function loadEmployee() {

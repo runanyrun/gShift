@@ -9,6 +9,7 @@ export interface Database {
         Row: {
           id: string;
           name: string;
+          slug: string;
           sector: string | null;
           country_code: string | null;
           currency_code: string | null;
@@ -20,6 +21,7 @@ export interface Database {
         Insert: {
           id?: string;
           name: string;
+          slug?: string;
           sector?: string | null;
           country_code?: string | null;
           currency_code?: string | null;
@@ -30,6 +32,7 @@ export interface Database {
         };
         Update: {
           name?: string;
+          slug?: string;
           sector?: string | null;
           country_code?: string | null;
           currency_code?: string | null;
@@ -72,6 +75,32 @@ export interface Database {
         };
         Relationships: [];
       };
+      company_memberships: {
+        Row: {
+          id: string;
+          auth_user_id: string;
+          company_id: string;
+          role: UserRole;
+          status: "active" | "inactive";
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          auth_user_id: string;
+          company_id: string;
+          role?: UserRole;
+          status?: "active" | "inactive";
+          created_at?: string;
+        };
+        Update: {
+          auth_user_id?: string;
+          company_id?: string;
+          role?: UserRole;
+          status?: "active" | "inactive";
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       shifts: {
         Row: {
           id: string;
@@ -79,6 +108,10 @@ export interface Database {
           user_id: string;
           starts_at: string;
           ends_at: string;
+          acceptance_status: "pending" | "accepted" | "declined";
+          responded_at: string | null;
+          responded_by: string | null;
+          response_note: string | null;
           created_by: string;
           created_at: string;
         };
@@ -88,15 +121,184 @@ export interface Database {
           user_id: string;
           starts_at: string;
           ends_at: string;
+          acceptance_status?: "pending" | "accepted" | "declined";
+          responded_at?: string | null;
+          responded_by?: string | null;
+          response_note?: string | null;
           created_by: string;
           created_at?: string;
         };
         Update: {
+          company_id?: string;
           user_id?: string;
           starts_at?: string;
           ends_at?: string;
+          acceptance_status?: "pending" | "accepted" | "declined";
+          responded_at?: string | null;
+          responded_by?: string | null;
+          response_note?: string | null;
           created_by?: string;
           created_at?: string;
+        };
+        Relationships: [];
+      };
+      marketplace_job_posts: {
+        Row: {
+          id: string;
+          company_id: string;
+          title: string;
+          starts_at: string;
+          ends_at: string;
+          location_id: string | null;
+          pay_rate: number | null;
+          status: "draft" | "open" | "closed" | "cancelled";
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          company_id: string;
+          title: string;
+          starts_at: string;
+          ends_at: string;
+          location_id?: string | null;
+          pay_rate?: number | null;
+          status?: "draft" | "open" | "closed" | "cancelled";
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          company_id?: string;
+          title?: string;
+          starts_at?: string;
+          ends_at?: string;
+          location_id?: string | null;
+          pay_rate?: number | null;
+          status?: "draft" | "open" | "closed" | "cancelled";
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      marketplace_applications: {
+        Row: {
+          id: string;
+          post_id: string;
+          worker_user_id: string;
+          status: "submitted" | "reviewing" | "rejected" | "accepted";
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          post_id: string;
+          worker_user_id: string;
+          status?: "submitted" | "reviewing" | "rejected" | "accepted";
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          post_id?: string;
+          worker_user_id?: string;
+          status?: "submitted" | "reviewing" | "rejected" | "accepted";
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      marketplace_assignments: {
+        Row: {
+          id: string;
+          post_id: string;
+          worker_user_id: string;
+          status: "scheduled" | "in_progress" | "completed" | "cancelled";
+          scheduled_at: string | null;
+          started_at: string | null;
+          completed_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          post_id: string;
+          worker_user_id: string;
+          status?: "scheduled" | "in_progress" | "completed" | "cancelled";
+          scheduled_at?: string | null;
+          started_at?: string | null;
+          completed_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          post_id?: string;
+          worker_user_id?: string;
+          status?: "scheduled" | "in_progress" | "completed" | "cancelled";
+          scheduled_at?: string | null;
+          started_at?: string | null;
+          completed_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      marketplace_work_logs: {
+        Row: {
+          id: string;
+          assignment_id: string;
+          clock_in: string;
+          clock_out: string | null;
+          minutes: number | null;
+          approved_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          assignment_id: string;
+          clock_in: string;
+          clock_out?: string | null;
+          minutes?: number | null;
+          approved_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          assignment_id?: string;
+          clock_in?: string;
+          clock_out?: string | null;
+          minutes?: number | null;
+          approved_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      marketplace_ratings: {
+        Row: {
+          id: string;
+          assignment_id: string;
+          company_to_worker_score: number | null;
+          worker_to_company_score: number | null;
+          notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          assignment_id: string;
+          company_to_worker_score?: number | null;
+          worker_to_company_score?: number | null;
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          assignment_id?: string;
+          company_to_worker_score?: number | null;
+          worker_to_company_score?: number | null;
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
         };
         Relationships: [];
       };
@@ -350,6 +552,10 @@ export interface Database {
         Args: Record<string, never>;
         Returns: string;
       };
+      current_tenant_id: {
+        Args: Record<string, never>;
+        Returns: string;
+      };
       complete_owner_onboarding: {
         Args: {
           p_auth_user_id: string;
@@ -373,6 +579,16 @@ export interface Database {
         Args: Record<string, never>;
         Returns: boolean;
       };
+      is_administration_user: {
+        Args: Record<string, never>;
+        Returns: boolean;
+      };
+      has_permission: {
+        Args: {
+          p_key: string;
+        };
+        Returns: boolean;
+      };
       get_my_employee: {
         Args: Record<string, never>;
         Returns: Database["public"]["Tables"]["employees"]["Row"][];
@@ -385,6 +601,27 @@ export interface Database {
           employee_id: string;
           tenant_id: string;
         }[];
+      };
+      respond_to_shift: {
+        Args: {
+          p_shift_id: string;
+          p_status: string;
+          p_note?: string | null;
+        };
+        Returns: {
+          id: string;
+          acceptance_status: "pending" | "accepted" | "declined";
+          responded_at: string;
+        }[];
+      };
+      debug_auth_context: {
+        Args: Record<string, never>;
+        Returns: {
+          auth_uid: string | null;
+          auth_role: string | null;
+          jwt: string | null;
+          headers: string | null;
+        };
       };
     };
     Enums: {
