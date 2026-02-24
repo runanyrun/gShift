@@ -17,16 +17,17 @@ export async function fetchMe(force = false): Promise<MeResponseData> {
 
   mePromise = (async () => {
     const supabase = createBrowserSupabaseClient();
-    const { data, error: sessionError } = await supabase.auth.getSession();
-    if (sessionError || !data.session?.access_token) {
-      throw new Error("Auth session missing.");
-    }
+    const { data } = await supabase.auth.getSession();
+    const accessToken = data.session?.access_token ?? null;
 
     const response = await fetch("/api/me", {
       method: "GET",
-      headers: {
-        Authorization: `Bearer ${data.session.access_token}`,
-      },
+      credentials: "include",
+      headers: accessToken
+        ? {
+            Authorization: `Bearer ${accessToken}`,
+          }
+        : undefined,
     });
     const body = (await response.json()) as {
       ok: boolean;

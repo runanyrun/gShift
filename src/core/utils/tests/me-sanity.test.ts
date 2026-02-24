@@ -19,10 +19,13 @@ interface MeApiResponse {
   error?: { message?: string } | string;
 }
 
-async function requestMe(baseUrl: string, accessToken?: string) {
+async function requestMe(baseUrl: string, opts?: { accessToken?: string; cookieAccessToken?: string }) {
   const headers: Record<string, string> = {};
-  if (accessToken) {
-    headers.Authorization = `Bearer ${accessToken}`;
+  if (opts?.accessToken) {
+    headers.Authorization = `Bearer ${opts.accessToken}`;
+  }
+  if (opts?.cookieAccessToken) {
+    headers.Cookie = `sb_access_token=${opts.cookieAccessToken}`;
   }
   const response = await fetch(`${baseUrl}/api/me`, { method: "GET", headers });
   const body = (await response.json()) as MeApiResponse;
@@ -41,7 +44,7 @@ async function main() {
   pass("/api/me requires auth token.");
 
   const tenant = await signIn({ email, password });
-  const authorized = await requestMe(baseUrl, tenant.accessToken);
+  const authorized = await requestMe(baseUrl, { accessToken: tenant.accessToken });
   if (authorized.response.status !== 200 || authorized.body.ok !== true || !authorized.body.data) {
     fail(
       `Expected authenticated /api/me response, got status=${authorized.response.status}, body=${JSON.stringify(authorized.body)}`,
@@ -67,7 +70,18 @@ async function main() {
       fail("Returned /api/me employee object is missing required safe fields.");
     }
   }
-  pass("/api/me returns user, tenant, permissions and safe employee payload.");
+  pass("/api/me returns user, tenant, permissions and safe employee payload with bearer auth.");
+
+  const cookieAuthorized = await requestMe(baseUrl, { cookieAccessToken: tenant.accessToken });
+  if (cookieAuthorized.response.status !== 200 || cookieAuthorized.body.ok !== true || !cookieAuthorized.body.data) {
+    fail(
+      `Expected cookie-authenticated /api/me response, got status=${cookieAuthorized.response.status}, body=${JSON.stringify(cookieAuthorized.body)}`,
+    );
+  }
+  if (cookieAuthorized.body.data.user.id !== tenant.authUserId) {
+    fail("Cookie-auth /api/me user.id does not match authenticated user.");
+  }
+  pass("/api/me supports SSR cookie auth.");
 
   const unlinkedEmail = makeUniqueEmail("me-unlinked");
   const unlinkedPassword = "MeUnlinked123!";
@@ -89,7 +103,9 @@ async function main() {
     fail(`Failed to sign in unlinked me-sanity user: ${unlinkedSignInError?.message ?? "unknown"}`);
   }
 
-  const unlinkedResponse = await requestMe(baseUrl, unlinkedSignInData.session.access_token);
+  const unlinkedResponse = await requestMe(baseUrl, {
+    accessToken: unlinkedSignInData.session.access_token,
+  });
   if (unlinkedResponse.response.status !== 200 || !unlinkedResponse.body.ok || !unlinkedResponse.body.data) {
     fail(
       `Expected linked /api/me success for unlinked user, got status=${unlinkedResponse.response.status}, body=${JSON.stringify(unlinkedResponse.body)}`,
