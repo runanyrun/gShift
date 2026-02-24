@@ -7,7 +7,8 @@ import { createBrowserSupabaseClient } from "../../core/db/supabase";
 export function LoginClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const next = searchParams.get("next") || "/dashboard";
+  const workspace = searchParams.get("workspace");
+  const next = searchParams.get("next") || (workspace ? `/dashboard?workspace=${encodeURIComponent(workspace)}` : "/dashboard");
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

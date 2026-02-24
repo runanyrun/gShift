@@ -1,30 +1,23 @@
 import { randomBytes, createHash } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { authenticateApiRequest } from "../../../../../core/auth/api-auth";
+import { toApiErrorResponse } from "../../../../../core/auth/api-error-response";
+import { requireManagePermissions } from "../../../../../core/auth/manage-permissions";
+import { applyResponseCookies } from "../../../../../core/auth/supabase-server-client";
 import { inviteEmailSender } from "../../../../../core/utils/invite-email";
 import { EmployeesController } from "../../../../../features/employees/employees.controller";
-
-function errorStatus(message: string): number {
-  if (
-    message.includes("Missing access token") ||
-    message.includes("Invalid or expired access token") ||
-    message.includes("Authenticated user context was not found")
-  ) {
-    return 401;
-  }
-  if (message.includes("Only management/admin")) {
-    return 403;
-  }
-  return 400;
-}
 
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  let authResponse: NextResponse | undefined;
   try {
     const { id } = await params;
-    const { supabase } = await authenticateApiRequest(request);
+    const auth = await authenticateApiRequest(request);
+    authResponse = auth.response;
+    const { supabase } = auth;
+    await requireManagePermissions(supabase);
     const body = (await request.json()) as { email: string; employeeName?: string };
 
     const rawToken = randomBytes(32).toString("hex");
@@ -39,14 +32,19 @@ export async function POST(
       expiresAt,
     });
 
-    const inviteLink = `${new URL(request.url).origin}/accept-invite?token=${encodeURIComponent(rawToken)}`;
+    const workspaceParam = invite.companySlug
+      ? `&workspace=${encodeURIComponent(invite.companySlug)}`
+      : "";
+    const inviteLink = `${new URL(request.url).origin}/accept-invite?token=${encodeURIComponent(rawToken)}${workspaceParam}`;
     await inviteEmailSender.sendInvite({
       to: body.email,
       employeeName: body.employeeName ?? "Employee",
       inviteLink,
     });
 
-    return NextResponse.json(
+    return applyResponseCookies(
+      authResponse,
+      NextResponse.json(
       {
         ok: true,
         data: {
@@ -55,9 +53,9 @@ export async function POST(
         },
       },
       { status: 201 },
+      ),
     );
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to create employee invite.";
-    return NextResponse.json({ ok: false, error: message }, { status: errorStatus(message) });
+    return applyResponseCookies(authResponse, toApiErrorResponse(error, "Failed to create employee invite."));
   }
 }

@@ -1,5 +1,6 @@
 import { getCurrentUserTenantContextOrThrow } from "../../../core/auth/current-user";
 import { TypedSupabaseClient } from "../../../core/db/supabase";
+import { resolveCurrentCompanySlug } from "../../../core/tenancy/resolve-company";
 import { EmployeesRepository } from "../employees.repository";
 import {
   DictionaryItem,
@@ -119,9 +120,11 @@ export class EmployeesService {
       expiresAt: params.expiresAt,
       createdBy: context.authUserId,
     });
+    const companySlug = await resolveCurrentCompanySlug(this.supabase);
     return {
       inviteId: invite.id,
       status: invite.status,
+      companySlug,
     };
   }
 

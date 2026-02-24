@@ -79,4 +79,5 @@ export interface EmployeeInvite {
 export interface InviteCreateResult {
   inviteId: string;
   status: EmployeeInvite["status"];
+  companySlug: string | null;
 }

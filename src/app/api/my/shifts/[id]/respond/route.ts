@@ -1,5 +1,7 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { authenticateApiRequest } from "../../../../../../core/auth/api-auth";
+import { toApiErrorResponse } from "../../../../../../core/auth/api-error-response";
+import { applyResponseCookies } from "../../../../../../core/auth/supabase-server-client";
 import { getCurrentUserTenantContext } from "../../../../../../core/auth/current-user";
 
 type ShiftResponseStatus = "accepted" | "declined";
@@ -7,32 +9,6 @@ type ShiftResponseStatus = "accepted" | "declined";
 interface RespondRequestBody {
   status?: unknown;
   note?: unknown;
-}
-
-function resolveStatus(errorMessage: string): number {
-  if (
-    errorMessage.includes("Missing access token") ||
-    errorMessage.includes("Invalid or expired access token") ||
-    errorMessage.includes("Auth session missing") ||
-    errorMessage.includes("Unauthenticated request")
-  ) {
-    return 401;
-  }
-
-  if (
-    errorMessage.includes("User is not connected to a tenant") ||
-    errorMessage.includes("Employee profile is not linked") ||
-    errorMessage.includes("Cannot respond to another employee shift") ||
-    errorMessage.includes("outside current tenant")
-  ) {
-    return 403;
-  }
-
-  if (errorMessage.includes("Shift not found")) {
-    return 404;
-  }
-
-  return 400;
 }
 
 function parseStatus(value: unknown): ShiftResponseStatus {
@@ -56,18 +32,24 @@ function parseNote(value: unknown): string | null {
 }
 
 export async function POST(
-  request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  let authResponse: NextResponse | undefined;
   try {
     const { id } = await params;
-    const { supabase, authUserId } = await authenticateApiRequest(request);
+    const auth = await authenticateApiRequest(request);
+    authResponse = auth.response;
+    const { supabase, authUserId } = auth;
     const context = await getCurrentUserTenantContext(supabase);
 
     if (!context) {
-      return NextResponse.json(
-        { ok: false, error: { message: "User is not connected to a tenant.", code: "tenant_missing" } },
-        { status: 403 },
+      return applyResponseCookies(
+        authResponse,
+        NextResponse.json(
+          { ok: false, error: { message: "User is not connected to a tenant.", code: "tenant_missing" } },
+          { status: 403 },
+        ),
       );
     }
 
@@ -83,9 +65,12 @@ export async function POST(
     }
 
     if (!employee) {
-      return NextResponse.json(
-        { ok: false, error: { message: "Employee profile is not linked.", code: "employee_missing" } },
-        { status: 403 },
+      return applyResponseCookies(
+        authResponse,
+        NextResponse.json(
+          { ok: false, error: { message: "Employee profile is not linked.", code: "employee_missing" } },
+          { status: 403 },
+        ),
       );
     }
 
@@ -105,22 +90,21 @@ export async function POST(
       throw new Error(error.message);
     }
 
-    return NextResponse.json(
-      {
-        ok: true,
-        data: {
-          id: data.id,
-          acceptance_status: data.acceptance_status,
-          responded_at: data.responded_at,
+    return applyResponseCookies(
+      authResponse,
+      NextResponse.json(
+        {
+          ok: true,
+          data: {
+            id: data.id,
+            acceptance_status: data.acceptance_status,
+            responded_at: data.responded_at,
+          },
         },
-      },
-      { status: 200 },
+        { status: 200 },
+      ),
     );
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to respond to shift.";
-    return NextResponse.json(
-      { ok: false, error: { message, code: "bad_request" } },
-      { status: resolveStatus(message) },
-    );
+    return applyResponseCookies(authResponse, toApiErrorResponse(error, "Failed to respond to shift."));
   }
 }
