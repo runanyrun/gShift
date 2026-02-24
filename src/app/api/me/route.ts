@@ -133,15 +133,13 @@ export async function GET(request: NextRequest) {
       }
 
       if (employee) {
-        const { data: permissionRows, error: permissionError } = await supabase
-          .from("employee_permissions")
-          .select("permission_key")
-          .eq("tenant_id", context.companyId)
-          .eq("employee_id", employee.id);
+        const { data: permissionRows, error: permissionError } = await supabase.rpc("my_employee_permissions");
 
-        if (!permissionError) {
-          for (const row of permissionRows) {
-            permissions.add(row.permission_key);
+        if (!permissionError && Array.isArray(permissionRows)) {
+          for (const row of permissionRows as Array<{ permission_key?: unknown }>) {
+            if (typeof row?.permission_key === "string" && row.permission_key.length > 0) {
+              permissions.add(row.permission_key);
+            }
           }
         }
       }

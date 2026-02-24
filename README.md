@@ -158,6 +158,8 @@ Then confirm manually:
 - If email confirmation is enabled and `signUp` returns no session, API returns `202` with `requiresEmailVerification = true`.
 - Stripe integration can be added later under `src/features/billing/` and `src/features/subscription/`.
 - `public.is_management_user()` RPC must grant execute to `authenticated`; unauthenticated calls return `false` and management guards return `no-permission`.
+- `public.employee_permissions` is hardened with `RLS + FORCE`; direct table access for `anon/authenticated` is revoked.
+- Permission reads/checks must go through RPC/guards (`my_employee_permissions`, `has_permission`, `is_management_user`) instead of direct table queries.
 - Debug auth probe (`/api/me?debugAuth=1`) is disabled by default and only enabled when `NODE_ENV` is not `production` and `ENABLE_DEBUG_AUTH=1`.
 
 ## Workspace Naming

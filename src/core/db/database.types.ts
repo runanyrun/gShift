@@ -631,6 +631,12 @@ export interface Database {
         Args: Record<string, never>;
         Returns: Database["public"]["Tables"]["employees"]["Row"][];
       };
+      my_employee_permissions: {
+        Args: Record<string, never>;
+        Returns: {
+          permission_key: string;
+        }[];
+      };
       accept_employee_invite: {
         Args: {
           p_raw_token: string;
