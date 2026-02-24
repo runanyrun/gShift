@@ -219,6 +219,11 @@ Then confirm manually:
   - manager create post: `POST /api/marketplace/posts`
   - authenticated list posts: `GET /api/marketplace/posts`
   - worker apply: `POST /api/marketplace/posts/:id/apply`
+  - manager applications inbox: `GET /api/marketplace/posts/:id/applications`
+  - manager accept -> assignment: `POST /api/marketplace/posts/:id/accept`
+  - manager complete assignment: `POST /api/marketplace/assignments/:id/complete`
+  - worker active assignments: `GET /api/my/marketplace/assignments?status=active|completed|all`
+  - worker history: `GET /api/my/marketplace/history`
   - apply response contract:
     - `201` created: `{ ok:true, data:{ id, postId, workerUserId, status, createdAt } }`
     - `200` already applied: `{ ok:true, data:{ postId, alreadyApplied:true, status } }`
@@ -230,6 +235,16 @@ Then confirm manually:
 - DB security layering:
   - `0012` sets RLS+FORCE and baseline revoke for marketplace tables
   - `0014` adds authenticated grants and MVP RLS policies
+  - `0015` adds assignment RLS/grants and optional private invite scaffold (default deny)
+- End-to-end mini flow:
+  - worker sees posts -> applies
+  - manager reviews applications -> accepts
+  - assignment is created and post becomes assigned
+  - manager marks assignment completed
+  - worker sees completed work in history
+- Error contracts (MVP):
+  - `time-conflict` (409): worker has overlapping active assignment
+  - `post-not-open` (409): post is not in open state for acceptance
 - Smoke command:
   - `npm run smoke:marketplace` (uses `ENABLE_MARKETPLACE=1`; missing env/network prints warning and exits cleanly)
 - This marketplace flow is assignment-based and can evolve independently from full multi-membership tenancy.
