@@ -21,6 +21,24 @@ function main() {
   if (canManage(["report_management"])) {
     fail("canManage should reject non-management permissions.");
   }
+  if (!canManage(["Administration"])) {
+    fail("canManage should normalize case for management keys.");
+  }
+  if (!hasPerm(["report-management"], "report_management")) {
+    fail("hasPerm should normalize kebab-case permission keys.");
+  }
+  if (!hasPerm(["reportManagement"], "report_management")) {
+    fail("hasPerm should normalize camelCase permission keys.");
+  }
+  if (!canManage({ administration: true })) {
+    fail("canManage should accept object-map permission input.");
+  }
+  if (!hasPerm({ management: 1 }, "management")) {
+    fail("hasPerm should treat truthy map values as enabled.");
+  }
+  if (hasPerm({ management: false }, "management")) {
+    fail("hasPerm should reject falsy map values.");
+  }
   pass("Permission helper logic is correct.");
 }
 

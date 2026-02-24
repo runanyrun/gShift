@@ -21,7 +21,7 @@ export default function EmployeesPage() {
   const searchParams = useSearchParams();
   const { data: me } = useMe();
   const canManage = canManagePermissions(me?.permissions ?? []);
-  const noPermission = searchParams.get("error") === "no-permission";
+  const noPermission = searchParams.get("error") === "no-permission" && !canManage;
 
   useEffect(() => {
     let mounted = true;
