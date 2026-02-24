@@ -10,7 +10,7 @@ function buildMe(input: Partial<MeResponseData>): MeResponseData {
   return {
     user: { id: "u1", email: "user@test.com", name: "User Test" },
     tenant: { id: "t1", name: "Tenant One" },
-    permissions: [],
+    permissions: null,
     employee: { id: "e1", first_name: "User", last_name: "Test", email: "user@test.com" },
     ...input,
   };
@@ -28,6 +28,12 @@ function main() {
     fail(`Expected employee null route to /onboarding, got ${employeeMissingRoute}`);
   }
   pass("employee=null routes to /onboarding");
+
+  const permissionsUnknownRoute = resolvePostLoginRoute(buildMe({ permissions: null }));
+  if (permissionsUnknownRoute !== "/my") {
+    fail(`Expected permissions=null route to /my, got ${permissionsUnknownRoute}`);
+  }
+  pass("permissions=null routes to safe default /my.");
 
   const employeeRoute = resolvePostLoginRoute(
     buildMe({ permissions: ["report_management", "timesheet_management"] }),

@@ -2,43 +2,77 @@
  * Local test setup:
  * 1. Run: npm run test:ui-permissions
  */
-import { canManage, hasPerm } from "../../auth/permissions";
+import {
+  canManage,
+  hasPerm,
+  normalizePermissionKey,
+  permissionsLoaded,
+} from "../../auth/permissions";
 import { fail, pass } from "./test-helpers";
 
 function main() {
-  if (!hasPerm(["management"], "management")) {
-    fail("hasPerm should return true for existing permission.");
+  if (!canManage(["administration", "management"])) {
+    fail("canManage should allow administration/management arrays.");
   }
-  if (hasPerm(["management"], "administration")) {
-    fail("hasPerm should return false for missing permission.");
-  }
-  if (!canManage(["administration"])) {
-    fail("canManage should allow administration.");
-  }
-  if (!canManage(["management"])) {
-    fail("canManage should allow management.");
-  }
+
   if (canManage(["report_management"])) {
     fail("canManage should reject non-management permissions.");
   }
-  if (!canManage(["Administration"])) {
-    fail("canManage should normalize case for management keys.");
+
+  if (!canManage(["AdMiNiStRaTiOn"])) {
+    fail("canManage should be case-insensitive.");
   }
+
+  if (!canManage([" management "])) {
+    fail("canManage should trim whitespace.");
+  }
+
   if (!hasPerm(["report-management"], "report_management")) {
-    fail("hasPerm should normalize kebab-case permission keys.");
+    fail("hasPerm should normalize kebab-case keys.");
   }
+
   if (!hasPerm(["reportManagement"], "report_management")) {
-    fail("hasPerm should normalize camelCase permission keys.");
+    fail("hasPerm should normalize camelCase keys.");
   }
-  if (!canManage({ administration: true })) {
-    fail("canManage should accept object-map permission input.");
+
+  if (!hasPerm({ reportManagement: true, report_management: false }, "report_management")) {
+    fail("Map conflicts should merge with true-wins semantics.");
   }
-  if (!hasPerm({ management: 1 }, "management")) {
-    fail("hasPerm should treat truthy map values as enabled.");
+
+  if (normalizePermissionKey("time_off") !== "time_off") {
+    fail("normalizePermissionKey should keep snake_case stable.");
   }
-  if (hasPerm({ management: false }, "management")) {
-    fail("hasPerm should reject falsy map values.");
+  if (normalizePermissionKey("timeOff") !== "time_off") {
+    fail("normalizePermissionKey should convert camelCase to snake_case.");
   }
+  if (normalizePermissionKey("timeoff") !== "timeoff") {
+    fail("normalizePermissionKey should keep flat lower-case tokens unchanged.");
+  }
+
+  if (!permissionsLoaded([])) {
+    fail("permissionsLoaded([]) should be true.");
+  }
+  if (!permissionsLoaded({})) {
+    fail("permissionsLoaded({}) should be true.");
+  }
+  if (permissionsLoaded(null)) {
+    fail("permissionsLoaded(null) should be false.");
+  }
+  if (permissionsLoaded(undefined)) {
+    fail("permissionsLoaded(undefined) should be false.");
+  }
+
+  if (hasPerm(null, "administration")) {
+    fail("hasPerm(null, ...) should be false.");
+  }
+
+  if (!canManage({ management: true })) {
+    fail("canManage should allow strict true map values.");
+  }
+  if (canManage({ management: "true" })) {
+    fail("canManage should reject non-boolean map values.");
+  }
+
   pass("Permission helper logic is correct.");
 }
 

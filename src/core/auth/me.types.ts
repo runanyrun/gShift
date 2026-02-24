@@ -8,7 +8,7 @@ export interface MeResponseData {
     id: string;
     name: string | null;
   } | null;
-  permissions: string[];
+  permissions: string[] | Record<string, unknown> | null;
   employee: {
     id: string;
     first_name: string;

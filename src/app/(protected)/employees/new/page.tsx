@@ -4,21 +4,29 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { createBrowserSupabaseClient } from "../../../../core/db/supabase";
 import { useMe } from "../../../../core/auth/useMe";
-import { canManage as canManagePermissions } from "../../../../core/auth/permissions";
+import {
+  canManage as canManagePermissions,
+  permissionsLoaded,
+} from "../../../../core/auth/permissions";
 import { EmployeeForm } from "../../../../shared/components/employee-form";
 
 export default function EmployeeCreatePage() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const { data: me } = useMe();
-  const canManage = canManagePermissions(me?.permissions ?? []);
+  const permissionsAreLoaded = permissionsLoaded(me?.permissions);
+  const canManage = canManagePermissions(me?.permissions);
   const canSeeNotes = canManage;
 
   useEffect(() => {
-    if (!canManage) {
+    if (permissionsAreLoaded && !canManage) {
       router.replace("/employees?error=no-permission");
     }
-  }, [canManage, router]);
+  }, [canManage, permissionsAreLoaded, router]);
+
+  if (!permissionsAreLoaded) {
+    return <div>Loading permissions...</div>;
+  }
 
   if (!canManage) {
     return <div>You don’t have permission to perform this action.</div>;

@@ -7,7 +7,7 @@ import { canManage } from "../../core/auth/permissions";
 
 function AppShellContent({ children }: { children: ReactNode }) {
   const { data, loading, error } = useMe();
-  const isManager = canManage(data?.permissions ?? []);
+  const isManager = canManage(data?.permissions);
 
   return (
     <div>
