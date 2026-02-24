@@ -79,6 +79,10 @@ export interface Database {
           user_id: string;
           starts_at: string;
           ends_at: string;
+          acceptance_status: "pending" | "accepted" | "declined";
+          responded_at: string | null;
+          responded_by: string | null;
+          response_note: string | null;
           created_by: string;
           created_at: string;
         };
@@ -88,13 +92,22 @@ export interface Database {
           user_id: string;
           starts_at: string;
           ends_at: string;
+          acceptance_status?: "pending" | "accepted" | "declined";
+          responded_at?: string | null;
+          responded_by?: string | null;
+          response_note?: string | null;
           created_by: string;
           created_at?: string;
         };
         Update: {
+          company_id?: string;
           user_id?: string;
           starts_at?: string;
           ends_at?: string;
+          acceptance_status?: "pending" | "accepted" | "declined";
+          responded_at?: string | null;
+          responded_by?: string | null;
+          response_note?: string | null;
           created_by?: string;
           created_at?: string;
         };
@@ -398,6 +411,18 @@ export interface Database {
         Returns: {
           employee_id: string;
           tenant_id: string;
+        }[];
+      };
+      respond_to_shift: {
+        Args: {
+          p_shift_id: string;
+          p_status: string;
+          p_note?: string | null;
+        };
+        Returns: {
+          id: string;
+          acceptance_status: "pending" | "accepted" | "declined";
+          responded_at: string;
         }[];
       };
     };
