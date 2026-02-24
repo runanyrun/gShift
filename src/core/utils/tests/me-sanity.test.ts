@@ -19,13 +19,13 @@ interface MeApiResponse {
   error?: { message?: string } | string;
 }
 
-async function requestMe(baseUrl: string, opts?: { accessToken?: string; cookieAccessToken?: string }) {
+async function requestMe(baseUrl: string, opts?: { accessToken?: string; authCookieValue?: string }) {
   const headers: Record<string, string> = {};
   if (opts?.accessToken) {
     headers.Authorization = `Bearer ${opts.accessToken}`;
   }
-  if (opts?.cookieAccessToken) {
-    headers.Cookie = `sb_access_token=${opts.cookieAccessToken}`;
+  if (opts?.authCookieValue) {
+    headers.Cookie = `sb-local-auth-token=${encodeURIComponent(opts.authCookieValue)}`;
   }
   const response = await fetch(`${baseUrl}/api/me`, { method: "GET", headers });
   const body = (await response.json()) as MeApiResponse;
@@ -72,7 +72,7 @@ async function main() {
   }
   pass("/api/me returns user, tenant, permissions and safe employee payload with bearer auth.");
 
-  const cookieAuthorized = await requestMe(baseUrl, { cookieAccessToken: tenant.accessToken });
+  const cookieAuthorized = await requestMe(baseUrl, { authCookieValue: tenant.accessToken });
   if (cookieAuthorized.response.status !== 200 || cookieAuthorized.body.ok !== true || !cookieAuthorized.body.data) {
     fail(
       `Expected cookie-authenticated /api/me response, got status=${cookieAuthorized.response.status}, body=${JSON.stringify(cookieAuthorized.body)}`,

@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { getCurrentUserTenantContext } from "../../../core/auth/current-user";
 import { MeResponseData } from "../../../core/auth/me.types";
 import { createSupabaseClientWithAccessToken } from "../../../core/db/supabase";
+import { getAuthenticatedUserFromCookies } from "../../../core/auth/server-auth";
 
 function permissionSetFromRole(role: "owner" | "admin" | "manager" | "employee"): Set<string> {
   if (role === "owner" || role === "admin") {
@@ -33,21 +33,15 @@ export async function GET(request: Request) {
       ? authHeader.slice("Bearer ".length)
       : null;
 
-    const cookieStore = await cookies();
-    const cookieAccessToken = cookieStore.get("sb_access_token")?.value ?? null;
-
     let supabase = null as ReturnType<typeof createSupabaseClientWithAccessToken> | null;
     let authUserId: string | null = null;
     let authUserEmail: string | null = null;
 
-    if (cookieAccessToken) {
-      const cookieClient = createSupabaseClientWithAccessToken(cookieAccessToken);
-      const { data, error } = await cookieClient.auth.getUser();
-      if (!error && data.user) {
-        supabase = cookieClient;
-        authUserId = data.user.id;
-        authUserEmail = data.user.email ?? null;
-      }
+    const cookieAuth = await getAuthenticatedUserFromCookies();
+    if (cookieAuth.supabase && cookieAuth.user) {
+      supabase = cookieAuth.supabase;
+      authUserId = cookieAuth.user.id;
+      authUserEmail = cookieAuth.user.email ?? null;
     }
 
     if (!supabase && bearerAccessToken) {
