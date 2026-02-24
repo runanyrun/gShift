@@ -151,7 +151,7 @@ export interface Database {
           ends_at: string;
           location_id: string | null;
           pay_rate: number | null;
-          status: "draft" | "open" | "closed" | "cancelled";
+          status: "draft" | "open" | "assigned" | "closed" | "cancelled";
           created_at: string;
           updated_at: string;
         };
@@ -163,7 +163,7 @@ export interface Database {
           ends_at: string;
           location_id?: string | null;
           pay_rate?: number | null;
-          status?: "draft" | "open" | "closed" | "cancelled";
+          status?: "draft" | "open" | "assigned" | "closed" | "cancelled";
           created_at?: string;
           updated_at?: string;
         };
@@ -174,7 +174,7 @@ export interface Database {
           ends_at?: string;
           location_id?: string | null;
           pay_rate?: number | null;
-          status?: "draft" | "open" | "closed" | "cancelled";
+          status?: "draft" | "open" | "assigned" | "closed" | "cancelled";
           created_at?: string;
           updated_at?: string;
         };
@@ -185,7 +185,7 @@ export interface Database {
           id: string;
           post_id: string;
           worker_user_id: string;
-          status: "submitted" | "reviewing" | "rejected" | "accepted";
+          status: "submitted" | "reviewing" | "rejected" | "invited" | "accepted";
           created_at: string;
           updated_at: string;
         };
@@ -193,14 +193,14 @@ export interface Database {
           id?: string;
           post_id: string;
           worker_user_id: string;
-          status?: "submitted" | "reviewing" | "rejected" | "accepted";
+          status?: "submitted" | "reviewing" | "rejected" | "invited" | "accepted";
           created_at?: string;
           updated_at?: string;
         };
         Update: {
           post_id?: string;
           worker_user_id?: string;
-          status?: "submitted" | "reviewing" | "rejected" | "accepted";
+          status?: "submitted" | "reviewing" | "rejected" | "invited" | "accepted";
           created_at?: string;
           updated_at?: string;
         };
@@ -211,7 +211,10 @@ export interface Database {
           id: string;
           post_id: string;
           worker_user_id: string;
-          status: "scheduled" | "in_progress" | "completed" | "cancelled";
+          company_id: string;
+          starts_at: string;
+          ends_at: string;
+          status: "active" | "completed" | "cancelled";
           scheduled_at: string | null;
           started_at: string | null;
           completed_at: string | null;
@@ -222,7 +225,10 @@ export interface Database {
           id?: string;
           post_id: string;
           worker_user_id: string;
-          status?: "scheduled" | "in_progress" | "completed" | "cancelled";
+          company_id: string;
+          starts_at: string;
+          ends_at: string;
+          status?: "active" | "completed" | "cancelled";
           scheduled_at?: string | null;
           started_at?: string | null;
           completed_at?: string | null;
@@ -232,7 +238,10 @@ export interface Database {
         Update: {
           post_id?: string;
           worker_user_id?: string;
-          status?: "scheduled" | "in_progress" | "completed" | "cancelled";
+          company_id?: string;
+          starts_at?: string;
+          ends_at?: string;
+          status?: "active" | "completed" | "cancelled";
           scheduled_at?: string | null;
           started_at?: string | null;
           completed_at?: string | null;
@@ -299,6 +308,35 @@ export interface Database {
           notes?: string | null;
           created_at?: string;
           updated_at?: string;
+        };
+        Relationships: [];
+      };
+      marketplace_private_invites: {
+        Row: {
+          id: string;
+          company_id: string;
+          worker_user_id: string;
+          note: string | null;
+          starts_after: string | null;
+          status: "pending" | "accepted" | "expired" | "cancelled";
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          company_id: string;
+          worker_user_id: string;
+          note?: string | null;
+          starts_after?: string | null;
+          status?: "pending" | "accepted" | "expired" | "cancelled";
+          created_at?: string;
+        };
+        Update: {
+          company_id?: string;
+          worker_user_id?: string;
+          note?: string | null;
+          starts_after?: string | null;
+          status?: "pending" | "accepted" | "expired" | "cancelled";
+          created_at?: string;
         };
         Relationships: [];
       };

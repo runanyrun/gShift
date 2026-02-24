@@ -29,6 +29,7 @@
     "test:my-shifts": "npm run test:my-shifts:service && npm run test:api-my-shifts && npm run test:api-my-shift-respond",
     "test:invite-accept": "bash scripts/run-with-test-env.sh ts-node --transpile-only --compiler-options '{\"module\":\"CommonJS\",\"moduleResolution\":\"Node\"}' src/core/utils/tests/invite-accept-single-tenant.test.ts",
     "test:marketplace-mvp": "bash scripts/run-with-test-env.sh ts-node --transpile-only --compiler-options '{\"module\":\"CommonJS\",\"moduleResolution\":\"Node\"}' src/core/utils/tests/marketplace-mvp.test.ts",
+    "test:marketplace-flow": "ENABLE_MARKETPLACE=1 bash scripts/run-with-test-env.sh ts-node --transpile-only --compiler-options '{\"module\":\"CommonJS\",\"moduleResolution\":\"Node\"}' src/core/utils/tests/marketplace-flow.test.ts",
     "smoke:marketplace": "ENABLE_MARKETPLACE=1 bash scripts/run-with-test-env.sh ts-node --transpile-only --compiler-options '{\"module\":\"CommonJS\",\"moduleResolution\":\"Node\"}' src/core/utils/tests/marketplace-smoke.test.ts",
     "test:http": "node scripts/run-ssr-tests.mjs test:ssr:raw test:me:raw test:dashboard:raw",
     "test:onboarding": "bash scripts/run-with-test-env.sh ts-node --transpile-only --compiler-options '{\"module\":\"CommonJS\",\"moduleResolution\":\"Node\"}' src/core/utils/tests/onboarding-edge-case.test.ts",
