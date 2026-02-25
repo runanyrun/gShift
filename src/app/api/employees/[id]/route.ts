@@ -1,66 +1,53 @@
-import { NextRequest, NextResponse } from "next/server";
-import { authenticateApiRequest } from "../../../../core/auth/api-auth";
-import { toApiErrorResponse } from "../../../../core/auth/api-error-response";
-import { requireManagePermissions } from "../../../../core/auth/manage-permissions";
-import { applyResponseCookies } from "../../../../core/auth/supabase-server-client";
-import { EmployeesController } from "../../../../features/employees/employees.controller";
+import { z } from "zod";
+import { getServerSupabase, requireCompanyId, requireUser } from "../../../../lib/auth";
+import { handleRouteError, HttpError, jsonOk, parseJson } from "../../../../lib/http";
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  let authResponse: NextResponse | undefined;
+const paramsSchema = z.object({ id: z.string().uuid() });
+
+const updateEmployeeSchema = z
+  .object({
+    location_id: z.string().uuid().optional(),
+    role_id: z.string().uuid().optional(),
+    full_name: z.string().trim().min(1).max(160).optional(),
+    active: z.boolean().optional(),
+    hourly_rate: z
+      .preprocess(
+        (value) => (value === null || value === undefined || value === "" ? null : value),
+        z.coerce.number().min(0).max(9999999999.99).nullable(),
+      )
+      .optional(),
+  })
+  .refine((value) => Object.keys(value).length > 0, {
+    message: "At least one field is required",
+  });
+
+export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
-    const { id } = await params;
-    const auth = await authenticateApiRequest(request);
-    authResponse = auth.response;
-    const { supabase } = auth;
-    const controller = new EmployeesController(supabase);
-    const data = await controller.getEmployeeById(id);
-    if (!data) {
-      return applyResponseCookies(authResponse, NextResponse.json({ ok: false, error: "Employee not found." }, { status: 404 }));
+    const supabase = await getServerSupabase();
+    await requireUser(supabase);
+    const companyId = await requireCompanyId(supabase);
+
+    const params = paramsSchema.parse(await context.params);
+    const body = await parseJson(request, updateEmployeeSchema);
+
+    const { data, error } = await supabase
+      .from("employees")
+      .update(body)
+      .eq("id", params.id)
+      .eq("company_id", companyId)
+      .select("id, company_id, location_id, role_id, full_name, active, hourly_rate, created_at, updated_at")
+      .maybeSingle();
+
+    if (error) {
+      throw new HttpError(400, error.message);
     }
-    return applyResponseCookies(authResponse, NextResponse.json({ ok: true, data }, { status: 200 }));
-  } catch (error) {
-    return applyResponseCookies(authResponse, toApiErrorResponse(error, "Failed to get employee."));
-  }
-}
 
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  let authResponse: NextResponse | undefined;
-  try {
-    const { id } = await params;
-    const auth = await authenticateApiRequest(request);
-    authResponse = auth.response;
-    const { supabase } = auth;
-    await requireManagePermissions(supabase);
-    const body = (await request.json()) as {
-      firstName: string;
-      lastName: string;
-      email: string;
-      phone1?: string | null;
-      phone2?: string | null;
-      gender?: string | null;
-      birthDate?: string | null;
-      isActive?: boolean;
-      jobTitleId?: string | null;
-      departmentId?: string | null;
-      startDate?: string | null;
-      endDate?: string | null;
-      payrollId?: string | null;
-      defaultBreakMinutes?: number | null;
-      defaultShiftHours?: number | null;
-      notes?: string | null;
-      locationIds?: string[];
-    };
+    if (!data) {
+      throw new HttpError(404, "Employee not found");
+    }
 
-    const controller = new EmployeesController(supabase);
-    const data = await controller.updateEmployee(id, body);
-    return applyResponseCookies(authResponse, NextResponse.json({ ok: true, data }, { status: 200 }));
+    return jsonOk(data);
   } catch (error) {
-    return applyResponseCookies(authResponse, toApiErrorResponse(error, "Failed to update employee."));
+    return handleRouteError(error);
   }
 }

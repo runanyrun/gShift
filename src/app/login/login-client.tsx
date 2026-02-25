@@ -2,7 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { createBrowserSupabaseClient } from "../../core/db/supabase";
+import { signInWithEmailPassword } from "../../lib/auth-client";
 
 export function LoginClient() {
   const router = useRouter();
@@ -21,24 +21,10 @@ export function LoginClient() {
     setError(null);
 
     try {
-      const supabase = createBrowserSupabaseClient();
-      const { data, error: signInError } = await supabase.auth.signInWithPassword({
-        email: email.trim().toLowerCase(),
-        password,
-      });
-
-      if (signInError) {
-        throw new Error(signInError.message);
-      }
-
-      const accessToken = data.session?.access_token;
-      const expiresAt = data.session?.expires_at;
-      if (!accessToken || !expiresAt) {
+      const data = await signInWithEmailPassword(email, password);
+      if (!data.session) {
         throw new Error("Auth session missing.");
       }
-
-      const maxAge = Math.max(0, expiresAt - Math.floor(Date.now() / 1000));
-      document.cookie = `sb_access_token=${accessToken}; Path=/; Max-Age=${maxAge}; SameSite=Lax`;
 
       router.replace(next);
     } catch (submitError) {
