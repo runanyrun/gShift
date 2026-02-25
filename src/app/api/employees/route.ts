@@ -1,74 +1,88 @@
-import { NextRequest, NextResponse } from "next/server";
-import { authenticateApiRequest } from "../../../core/auth/api-auth";
-import { toApiErrorResponse } from "../../../core/auth/api-error-response";
-import { requireManagePermissions } from "../../../core/auth/manage-permissions";
-import { applyResponseCookies } from "../../../core/auth/supabase-server-client";
-import { EmployeesController } from "../../../features/employees/employees.controller";
+import { z } from "zod";
+import { getServerSupabase, requireCompanyId, requireUser } from "../../../lib/auth";
+import { handleRouteError, HttpError, jsonOk, parseJson } from "../../../lib/http";
 
-function parseBooleanParam(value: string | null): boolean | undefined {
-  if (value === null) {
-    return undefined;
-  }
-  if (value === "true") {
-    return true;
-  }
-  if (value === "false") {
-    return false;
-  }
-  return undefined;
-}
+const createEmployeeSchema = z.object({
+  location_id: z.string().uuid(),
+  role_id: z.string().uuid(),
+  full_name: z.string().trim().min(1).max(160),
+  active: z.boolean().optional(),
+  hourly_rate: z
+    .preprocess(
+      (value) => (value === null || value === undefined || value === "" ? null : value),
+      z.coerce.number().min(0).max(9999999999.99).nullable(),
+    )
+    .optional(),
+});
 
-export async function GET(request: NextRequest) {
-  let authResponse: NextResponse | undefined;
+const listEmployeesQuerySchema = z.object({
+  locationId: z.string().uuid().optional(),
+});
+
+export async function GET(request: Request) {
   try {
-    const auth = await authenticateApiRequest(request);
-    authResponse = auth.response;
-    const { supabase } = auth;
-    const controller = new EmployeesController(supabase);
+    const supabase = await getServerSupabase();
+    await requireUser(supabase);
+    const companyId = await requireCompanyId(supabase);
+
     const url = new URL(request.url);
-    const data = await controller.listEmployees({
-      isActive: parseBooleanParam(url.searchParams.get("is_active")),
-      locationId: url.searchParams.get("location_id") ?? undefined,
-      departmentId: url.searchParams.get("department_id") ?? undefined,
-      jobTitleId: url.searchParams.get("job_title_id") ?? undefined,
+    const parsed = listEmployeesQuerySchema.safeParse({
+      locationId: url.searchParams.get("locationId") ?? undefined,
     });
-    return applyResponseCookies(authResponse, NextResponse.json({ ok: true, data }, { status: 200 }));
+
+    if (!parsed.success) {
+      throw new HttpError(400, parsed.error.issues[0]?.message ?? "Invalid query parameters");
+    }
+
+    let query = supabase
+      .from("employees")
+      .select("id, company_id, location_id, role_id, full_name, active, hourly_rate, created_at, updated_at")
+      .eq("company_id", companyId)
+      .order("full_name", { ascending: true });
+
+    if (parsed.data.locationId) {
+      query = query.eq("location_id", parsed.data.locationId);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      throw new HttpError(400, error.message);
+    }
+
+    return jsonOk(data ?? []);
   } catch (error) {
-    return applyResponseCookies(authResponse, toApiErrorResponse(error, "Failed to list employees."));
+    return handleRouteError(error);
   }
 }
 
-export async function POST(request: NextRequest) {
-  let authResponse: NextResponse | undefined;
+export async function POST(request: Request) {
   try {
-    const auth = await authenticateApiRequest(request);
-    authResponse = auth.response;
-    const { supabase } = auth;
-    await requireManagePermissions(supabase);
-    const body = (await request.json()) as {
-      firstName: string;
-      lastName: string;
-      email: string;
-      phone1?: string | null;
-      phone2?: string | null;
-      gender?: string | null;
-      birthDate?: string | null;
-      isActive?: boolean;
-      jobTitleId?: string | null;
-      departmentId?: string | null;
-      startDate?: string | null;
-      endDate?: string | null;
-      payrollId?: string | null;
-      defaultBreakMinutes?: number | null;
-      defaultShiftHours?: number | null;
-      notes?: string | null;
-      locationIds?: string[];
-    };
+    const supabase = await getServerSupabase();
+    await requireUser(supabase);
+    const companyId = await requireCompanyId(supabase);
 
-    const controller = new EmployeesController(supabase);
-    const data = await controller.createEmployee(body);
-    return applyResponseCookies(authResponse, NextResponse.json({ ok: true, data }, { status: 201 }));
+    const body = await parseJson(request, createEmployeeSchema);
+
+    const { data, error } = await supabase
+      .from("employees")
+      .insert({
+        company_id: companyId,
+        location_id: body.location_id,
+        role_id: body.role_id,
+        full_name: body.full_name,
+        active: body.active ?? true,
+        hourly_rate: body.hourly_rate ?? null,
+      })
+      .select("id, company_id, location_id, role_id, full_name, active, hourly_rate, created_at, updated_at")
+      .single();
+
+    if (error) {
+      throw new HttpError(400, error.message);
+    }
+
+    return jsonOk(data, 201);
   } catch (error) {
-    return applyResponseCookies(authResponse, toApiErrorResponse(error, "Failed to create employee."));
+    return handleRouteError(error);
   }
 }

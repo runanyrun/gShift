@@ -4,13 +4,10 @@ import { handleRouteError, HttpError, jsonOk, parseJson } from "../../../../lib/
 
 const paramsSchema = z.object({ id: z.string().uuid() });
 
-const updateEmployeeSchema = z
+const updateRoleSchema = z
   .object({
-    location_id: z.string().uuid().optional(),
-    role_id: z.string().uuid().optional(),
-    full_name: z.string().trim().min(1).max(160).optional(),
-    active: z.boolean().optional(),
-    hourly_rate: z
+    name: z.string().trim().min(1).max(120).optional(),
+    hourly_wage_default: z
       .preprocess(
         (value) => (value === null || value === undefined || value === "" ? null : value),
         z.coerce.number().min(0).max(9999999999.99).nullable(),
@@ -28,14 +25,14 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     const companyId = await requireCompanyId(supabase);
 
     const params = paramsSchema.parse(await context.params);
-    const body = await parseJson(request, updateEmployeeSchema);
+    const body = await parseJson(request, updateRoleSchema);
 
     const { data, error } = await supabase
-      .from("employees")
+      .from("roles")
       .update(body)
       .eq("id", params.id)
       .eq("company_id", companyId)
-      .select("id, company_id, location_id, role_id, full_name, active, hourly_rate, created_at, updated_at")
+      .select("id, company_id, name, hourly_wage_default, created_at, updated_at")
       .maybeSingle();
 
     if (error) {
@@ -43,7 +40,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     }
 
     if (!data) {
-      throw new HttpError(404, "Employee not found");
+      throw new HttpError(404, "Role not found");
     }
 
     return jsonOk(data);

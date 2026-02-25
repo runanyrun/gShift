@@ -2,7 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { signInWithEmailPassword } from "../../lib/auth";
+import { signInWithEmailPassword } from "../../lib/auth-client";
 
 export function LoginClient() {
   const router = useRouter();

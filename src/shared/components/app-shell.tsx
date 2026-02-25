@@ -5,7 +5,7 @@ import { ReactNode } from "react";
 import { MeProvider, useMe } from "../../core/auth/useMe";
 import { canManage } from "../../core/auth/permissions";
 import { ActiveTenantDropdown } from "./active-tenant-dropdown";
-import { signOut } from "../../lib/auth";
+import { signOut } from "../../lib/auth-client";
 
 function AppShellContent({ children }: { children: ReactNode }) {
   const { data, loading, error } = useMe();

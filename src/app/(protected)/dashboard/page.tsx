@@ -128,6 +128,7 @@ export default function DashboardPage() {
       <h1>Tenant Dashboard</h1>
       <nav>
         <Link href="/employees">Employees</Link> | <Link href="/my">My Dashboard</Link> |{" "}
+        <Link href="/onboarding">Start setup</Link> |{" "}
         <Link href="/settings/job-titles">Job Titles</Link> |{" "}
         <Link href="/settings/departments">Departments</Link> |{" "}
         <Link href="/settings/locations">Locations</Link>
