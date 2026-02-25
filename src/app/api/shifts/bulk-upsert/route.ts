@@ -12,6 +12,8 @@ const shiftSchema = z.object({
   break_minutes: z.number().int().min(0).optional(),
   hourly_wage: z.coerce.number().min(0).max(9999999999.99),
   notes: z.string().max(2000).optional().nullable(),
+  status: z.enum(["open", "closed", "cancelled"]).optional(),
+  cancel_reason: z.string().max(2000).optional().nullable(),
 });
 
 const bodySchema = z.union([
@@ -42,6 +44,8 @@ export async function POST(request: Request) {
       hourly_wage: shift.hourly_wage,
       notes: shift.notes ?? null,
       created_by: user.id,
+      ...(shift.status ? { status: shift.status } : {}),
+      ...(shift.cancel_reason !== undefined ? { cancel_reason: shift.cancel_reason ?? null } : {}),
     }));
 
     const rowsWithId = rows.filter((row) => typeof row.id === "string");
@@ -54,7 +58,7 @@ export async function POST(request: Request) {
         .from("shifts")
         .upsert(rowsWithId, { onConflict: "id" })
         .select(
-          "id, company_id, location_id, employee_id, role_id, start_at, end_at, break_minutes, hourly_wage, notes, created_by, created_at, updated_at",
+          "id, company_id, location_id, employee_id, role_id, start_at, end_at, break_minutes, hourly_wage, notes, status, cancel_reason, cancelled_at, closed_at, created_by, created_at, updated_at",
         );
 
       if (error) {
@@ -69,7 +73,7 @@ export async function POST(request: Request) {
         .from("shifts")
         .insert(rowsWithoutId)
         .select(
-          "id, company_id, location_id, employee_id, role_id, start_at, end_at, break_minutes, hourly_wage, notes, created_by, created_at, updated_at",
+          "id, company_id, location_id, employee_id, role_id, start_at, end_at, break_minutes, hourly_wage, notes, status, cancel_reason, cancelled_at, closed_at, created_by, created_at, updated_at",
         );
 
       if (error) {

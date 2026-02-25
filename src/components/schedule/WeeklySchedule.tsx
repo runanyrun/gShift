@@ -48,6 +48,10 @@ type Shift = {
   break_minutes: number;
   hourly_wage: number;
   notes: string | null;
+  status?: "open" | "closed" | "cancelled";
+  cancel_reason?: string | null;
+  closed_at?: string | null;
+  cancelled_at?: string | null;
 };
 
 type CompanySettings = {
@@ -69,6 +73,8 @@ type ShiftInput = {
   break_minutes?: number;
   hourly_wage: number;
   notes?: string | null;
+  status?: "open" | "closed" | "cancelled";
+  cancel_reason?: string | null;
 };
 
 type EditableShift = {
@@ -81,6 +87,13 @@ type EditableShift = {
   break_minutes: number;
   hourly_wage: string;
   notes: string;
+};
+
+type EmployeeCostBreakdown = {
+  employee_id: string;
+  employee_name: string;
+  total_hours: number;
+  total_cost: number;
 };
 
 const DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -226,10 +239,6 @@ function dateLabel(day: string, timeZone: string, formatDateDisplay: (value: Dat
   return `${DAY_NAMES[(weekday + 6) % 7]} ${formatDateDisplay(anchor)}`;
 }
 
-function toTimeInputValue(iso: string, timeZone: string) {
-  return timeOfIsoInTimeZone(iso, timeZone);
-}
-
 function dateOfIsoLocal(iso: string, timeZone: string) {
   return dateOfIsoInTimeZone(iso, timeZone);
 }
@@ -241,14 +250,32 @@ function setDateKeepingTime(iso: string, dateOnly: string, timeZone: string) {
   return makeIsoWithZone(dateOnly, Number.isFinite(hour) ? hour : 0, Number.isFinite(minute) ? minute : 0, timeZone);
 }
 
-function setTimeKeepingDate(iso: string, hhmm: string, timeZone: string) {
-  const day = dateOfIsoInTimeZone(iso, timeZone);
-  const [hours, minutes] = hhmm.split(":").map(Number);
-  return makeIsoWithZone(day, hours, minutes, timeZone);
-}
-
 function fmtTimeRange(startIso: string, endIso: string, formatTimeHM: (value: Date | string) => string) {
   return `${formatTimeHM(startIso)} - ${formatTimeHM(endIso)}`;
+}
+
+function statusOfShift(shift: Shift): "open" | "closed" | "cancelled" {
+  return shift.status ?? "open";
+}
+
+function toDateTimeInputValue(iso: string, timeZone: string) {
+  const day = dateOfIsoInTimeZone(iso, timeZone);
+  const time = timeOfIsoInTimeZone(iso, timeZone);
+  return `${day}T${time}`;
+}
+
+function toIsoFromDateTimeInput(value: string, timeZone: string) {
+  const [day, time] = value.split("T");
+  if (!day || !time) {
+    return "";
+  }
+  const [hourRaw, minuteRaw] = time.split(":");
+  const hour = Number(hourRaw);
+  const minute = Number(minuteRaw);
+  if (!Number.isInteger(hour) || !Number.isInteger(minute)) {
+    return "";
+  }
+  return makeIsoWithZone(day, hour, minute, timeZone);
 }
 
 function shiftToInput(shift: Shift): ShiftInput {
@@ -262,6 +289,8 @@ function shiftToInput(shift: Shift): ShiftInput {
     break_minutes: shift.break_minutes,
     hourly_wage: shift.hourly_wage,
     notes: shift.notes,
+    status: shift.status,
+    cancel_reason: shift.cancel_reason,
   };
 }
 
@@ -288,6 +317,10 @@ export function WeeklySchedule() {
 
   const [editingShift, setEditingShift] = useState<EditableShift | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [closeTargetShift, setCloseTargetShift] = useState<Shift | null>(null);
+  const [cancelTargetShift, setCancelTargetShift] = useState<Shift | null>(null);
+  const [cancelReason, setCancelReason] = useState("");
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
 
   const [upsertQueue, setUpsertQueue] = useState<Record<string, ShiftInput>>({});
   const upsertQueueRef = useRef<Record<string, ShiftInput>>({});
@@ -465,6 +498,9 @@ export function WeeklySchedule() {
   }
 
   function onDragStart(event: DragEvent<HTMLDivElement>, shift: Shift) {
+    if (statusOfShift(shift) !== "open") {
+      return;
+    }
     event.dataTransfer.setData("application/json", JSON.stringify({ shiftId: shift.id }));
   }
 
@@ -486,6 +522,9 @@ export function WeeklySchedule() {
       if (!source) {
         return;
       }
+      if (statusOfShift(source) !== "open") {
+        return;
+      }
 
       const next: Shift = {
         ...source,
@@ -502,6 +541,9 @@ export function WeeklySchedule() {
   }
 
   function openEditModal(shift: Shift) {
+    if (statusOfShift(shift) !== "open") {
+      return;
+    }
     setEditingShift({
       id: shift.id,
       location_id: shift.location_id,
@@ -538,6 +580,14 @@ export function WeeklySchedule() {
       setError("Hourly wage must be a valid non-negative number");
       return;
     }
+    if (editingShift.break_minutes < 0) {
+      setError("Break minutes must be a valid non-negative number");
+      return;
+    }
+    if (new Date(editingShift.end_at).getTime() <= new Date(editingShift.start_at).getTime()) {
+      setError("End time must be after start time");
+      return;
+    }
 
     const updated: Shift = {
       id: editingShift.id,
@@ -549,14 +599,81 @@ export function WeeklySchedule() {
       break_minutes: editingShift.break_minutes,
       hourly_wage: parsedWage,
       notes: editingShift.notes || null,
+      status: "open",
     };
 
-    applyOptimisticShift(updated);
-    queueShiftUpsert(updated);
-    await flushQueuedUpserts();
+    if (isTempId(editingShift.id)) {
+      applyOptimisticShift(updated);
+      queueShiftUpsert(updated);
+      await flushQueuedUpserts();
+    } else {
+      setSaving(true);
+      setError(null);
+      try {
+        await fetchJson<Shift>(`/api/shifts/${editingShift.id}`, {
+          method: "PATCH",
+          body: JSON.stringify({
+            start_at: editingShift.start_at,
+            end_at: editingShift.end_at,
+            break_minutes: editingShift.break_minutes,
+            employee_id: editingShift.employee_id,
+            role_id: editingShift.role_id,
+            hourly_wage: parsedWage,
+            notes: editingShift.notes || null,
+          }),
+        });
+        await loadWeekData(selectedLocationId, weekStart);
+      } catch (saveError) {
+        setError(saveError instanceof Error ? saveError.message : "Failed to save shift");
+        return;
+      } finally {
+        setSaving(false);
+      }
+    }
 
     setIsDialogOpen(false);
     setEditingShift(null);
+  }
+
+  async function closeShift(shift: Shift) {
+    if (statusOfShift(shift) !== "open" || isTempId(shift.id)) {
+      return;
+    }
+    setSaving(true);
+    setError(null);
+    try {
+      await fetchJson<Shift>(`/api/shifts/${shift.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ status: "closed" }),
+      });
+      await loadWeekData(selectedLocationId, weekStart);
+    } catch (closeError) {
+      setError(closeError instanceof Error ? closeError.message : "Failed to close shift");
+    } finally {
+      setSaving(false);
+      setCloseTargetShift(null);
+    }
+  }
+
+  async function cancelShift(shift: Shift, reason: string) {
+    if (statusOfShift(shift) === "cancelled" || isTempId(shift.id)) {
+      return;
+    }
+    setSaving(true);
+    setError(null);
+    try {
+      await fetchJson<Shift>(`/api/shifts/${shift.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ status: "cancelled", cancel_reason: reason || null }),
+      });
+      await loadWeekData(selectedLocationId, weekStart);
+    } catch (cancelError) {
+      setError(cancelError instanceof Error ? cancelError.message : "Failed to cancel shift");
+    } finally {
+      setSaving(false);
+      setCancelTargetShift(null);
+      setCancelReason("");
+    }
   }
 
   function onDoubleClickEmptyCell(employee: Employee, dateStr: string, cellShifts: Shift[]) {
@@ -711,6 +828,37 @@ export function WeeklySchedule() {
     () => [...dayCostTotals.values()].reduce((sum, current) => sum + current, 0),
     [dayCostTotals],
   );
+  const weeklyCostBreakdown = useMemo<EmployeeCostBreakdown[]>(() => {
+    const byEmployee = new Map<string, EmployeeCostBreakdown>();
+
+    for (const shift of shifts) {
+      const metrics = calcShiftMetrics(shift);
+      const current = byEmployee.get(shift.employee_id);
+      if (current) {
+        current.total_hours += metrics.duration_hours;
+        current.total_cost += metrics.shift_cost;
+        continue;
+      }
+
+      byEmployee.set(shift.employee_id, {
+        employee_id: shift.employee_id,
+        employee_name: employees.find((employee) => employee.id === shift.employee_id)?.full_name ?? "Employee",
+        total_hours: metrics.duration_hours,
+        total_cost: metrics.shift_cost,
+      });
+    }
+
+    return [...byEmployee.values()].sort((a, b) => b.total_cost - a.total_cost);
+  }, [shifts, employees]);
+  const topCostContributor = weeklyCostBreakdown[0];
+  const selectedBreakdownEmployee = useMemo(
+    () => weeklyCostBreakdown.find((item) => item.employee_id === selectedEmployeeId) ?? null,
+    [weeklyCostBreakdown, selectedEmployeeId],
+  );
+  const visibleEmployees = useMemo(
+    () => (selectedEmployeeId ? employees.filter((employee) => employee.id === selectedEmployeeId) : employees),
+    [employees, selectedEmployeeId],
+  );
   const weeklyBudgetLimit = normalizeBudgetLimit(companySettings.weekly_budget_limit);
   const exceededBudgetAmount = weeklyBudgetLimit !== null && weekCostTotal > weeklyBudgetLimit
     ? weekCostTotal - weeklyBudgetLimit
@@ -758,6 +906,14 @@ export function WeeklySchedule() {
           Copy last week
         </Button>
         <p className="text-sm text-slate-700">Week cost: {formatCurrency(weekCostTotal)}</p>
+        {selectedBreakdownEmployee ? (
+          <>
+            <Badge variant="secondary">Filtered: {selectedBreakdownEmployee.employee_name}</Badge>
+            <Button type="button" variant="outline" onClick={() => setSelectedEmployeeId(null)}>
+              Clear filter
+            </Button>
+          </>
+        ) : null}
         {exceededBudgetAmount > 0 ? (
           <Badge variant="destructive">Weekly budget exceeded by {formatCurrency(exceededBudgetAmount)}</Badge>
         ) : null}
@@ -766,6 +922,43 @@ export function WeeklySchedule() {
       </header>
 
       {error ? <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p> : null}
+
+      <details className="rounded-lg border border-slate-200 bg-white" open={weeklyCostBreakdown.length > 0}>
+        <summary className="flex cursor-pointer items-center justify-between gap-2 px-4 py-3 text-sm font-semibold text-slate-800">
+          <span>Cost breakdown</span>
+          {topCostContributor ? (
+            <Badge variant="secondary">Top: {topCostContributor.employee_name}</Badge>
+          ) : null}
+        </summary>
+        <div className="border-t border-slate-100 px-4 py-3">
+          {weeklyCostBreakdown.length === 0 ? (
+            <p className="text-sm text-slate-500">No shifts in this week.</p>
+          ) : (
+            <div className="space-y-2">
+              {weeklyCostBreakdown.map((row) => (
+                <button
+                  key={row.employee_id}
+                  type="button"
+                  onClick={() => setSelectedEmployeeId((current) => (current === row.employee_id ? null : row.employee_id))}
+                  className={`grid w-full grid-cols-[1fr_auto_auto] items-center gap-3 rounded-md px-2 py-1 text-left text-sm transition-colors ${
+                    selectedEmployeeId === row.employee_id ? "bg-slate-900 text-white" : "hover:bg-slate-50"
+                  }`}
+                >
+                  <p className={`font-medium ${selectedEmployeeId === row.employee_id ? "text-white" : "text-slate-800"}`}>
+                    {row.employee_name}
+                  </p>
+                  <p className={selectedEmployeeId === row.employee_id ? "text-slate-200" : "text-slate-600"}>
+                    {formatNumber(row.total_hours)}h
+                  </p>
+                  <p className={`font-semibold ${selectedEmployeeId === row.employee_id ? "text-white" : "text-slate-900"}`}>
+                    {formatCurrency(row.total_cost)}
+                  </p>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </details>
 
       <div className="overflow-auto rounded-lg border border-slate-200 bg-white">
         <div className="min-w-[980px]">
@@ -783,9 +976,9 @@ export function WeeklySchedule() {
             ))}
           </div>
 
-          {employees.length === 0 ? <div className="p-4 text-sm text-slate-600">No employees found for this location.</div> : null}
+          {visibleEmployees.length === 0 ? <div className="p-4 text-sm text-slate-600">No employees found for this location.</div> : null}
 
-          {employees.map((employee) => (
+          {visibleEmployees.map((employee) => (
             <div key={employee.id} className="grid grid-cols-[220px_repeat(7,minmax(140px,1fr))] border-b border-slate-100">
               <div className="p-3 text-sm font-medium text-slate-900">{employee.full_name}</div>
               {weekDays.map((dateStr) => {
@@ -805,21 +998,85 @@ export function WeeklySchedule() {
                         const employeeName = employees.find((candidate) => candidate.id === shift.employee_id)?.full_name ?? "Employee";
                         const roleName = roles.find((role) => role.id === shift.role_id)?.name ?? "Role";
                         const metrics = calcShiftMetrics(shift);
+                        const shiftStatus = statusOfShift(shift);
+                        const isOpen = shiftStatus === "open";
+                        const isClosed = shiftStatus === "closed";
+                        const isCancelled = shiftStatus === "cancelled";
                         return (
                           <div
                             key={shift.id}
-                            draggable
+                            draggable={isOpen}
                             onDragStart={(event) => onDragStart(event, shift)}
-                            onClick={() => openEditModal(shift)}
-                            className="cursor-move rounded-md border border-slate-300 bg-slate-100 px-2 py-1 text-xs text-slate-900 hover:bg-slate-200"
-                            title="Drag to another day/employee or click to edit"
+                            onClick={() => {
+                              if (isOpen) {
+                                openEditModal(shift);
+                              }
+                            }}
+                            className={`rounded-md border px-2 py-1 text-xs ${
+                              isCancelled
+                                ? "border-slate-200 bg-slate-50 text-slate-500"
+                                : "border-slate-300 bg-slate-100 text-slate-900 hover:bg-slate-200"
+                            } ${isOpen ? "cursor-move" : "cursor-default"}`}
+                            title={
+                              isOpen
+                                ? "Drag to another day/employee or click to edit"
+                                : isClosed
+                                  ? "Closed shifts are locked"
+                                  : "Cancelled shift"
+                            }
                           >
-                            <p className="font-semibold">{fmtTimeRange(shift.start_at, shift.end_at, formatTimeHM)}</p>
+                            <div className="mb-1 flex items-center justify-between gap-2">
+                              <p className="font-semibold">{fmtTimeRange(shift.start_at, shift.end_at, formatTimeHM)}</p>
+                              <Badge variant={isCancelled ? "outline" : isClosed ? "secondary" : "default"}>
+                                {shiftStatus.charAt(0).toUpperCase() + shiftStatus.slice(1)}
+                              </Badge>
+                            </div>
                             <p>{employeeName}</p>
                             <p>{roleName} • {formatNumber(metrics.duration_hours)}h</p>
                             <p className="text-slate-600">
                               {formatCurrency(metrics.hourly_wage)}/h • {formatCurrency(metrics.shift_cost)}
                             </p>
+                            {shift.cancel_reason ? (
+                              <p className="text-slate-500">Reason: {shift.cancel_reason}</p>
+                            ) : null}
+                            <div className="mt-1 flex flex-wrap gap-1">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                className="h-7 px-2 text-[11px]"
+                                disabled={!isOpen}
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  openEditModal(shift);
+                                }}
+                              >
+                                Edit
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                className="h-7 px-2 text-[11px]"
+                                disabled={!isOpen}
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  setCloseTargetShift(shift);
+                                }}
+                              >
+                                Close
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="destructive"
+                                className="h-7 px-2 text-[11px]"
+                                disabled={isCancelled}
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  setCancelTargetShift(shift);
+                                }}
+                              >
+                                Cancel
+                              </Button>
+                            </div>
                           </div>
                         );
                       })}
@@ -842,17 +1099,17 @@ export function WeeklySchedule() {
           {editingShift ? (
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <Label htmlFor="start-time">Start time</Label>
+                <Label htmlFor="start-at">Start</Label>
                 <Input
-                  id="start-time"
-                  type="time"
-                  value={toTimeInputValue(editingShift.start_at, tz)}
+                  id="start-at"
+                  type="datetime-local"
+                  value={toDateTimeInputValue(editingShift.start_at, tz)}
                   onChange={(event) =>
                     setEditingShift((current) =>
                       current
                         ? {
                             ...current,
-                            start_at: setTimeKeepingDate(current.start_at, event.target.value, tz),
+                            start_at: toIsoFromDateTimeInput(event.target.value, tz) || current.start_at,
                           }
                         : current,
                     )
@@ -861,22 +1118,46 @@ export function WeeklySchedule() {
               </div>
 
               <div className="space-y-1">
-                <Label htmlFor="end-time">End time</Label>
+                <Label htmlFor="end-at">End</Label>
                 <Input
-                  id="end-time"
-                  type="time"
-                  value={toTimeInputValue(editingShift.end_at, tz)}
+                  id="end-at"
+                  type="datetime-local"
+                  value={toDateTimeInputValue(editingShift.end_at, tz)}
                   onChange={(event) =>
                     setEditingShift((current) =>
                       current
                         ? {
                             ...current,
-                            end_at: setTimeKeepingDate(current.end_at, event.target.value, tz),
+                            end_at: toIsoFromDateTimeInput(event.target.value, tz) || current.end_at,
                           }
                         : current,
                     )
                   }
                 />
+              </div>
+
+              <div className="col-span-2 space-y-1">
+                <Label htmlFor="employee">Employee</Label>
+                <Select
+                  id="employee"
+                  value={editingShift.employee_id}
+                  onChange={(event) =>
+                    setEditingShift((current) =>
+                      current
+                        ? {
+                            ...current,
+                            employee_id: event.target.value,
+                          }
+                        : current,
+                    )
+                  }
+                >
+                  {employees.map((employee) => (
+                    <option key={employee.id} value={employee.id}>
+                      {employee.full_name}
+                    </option>
+                  ))}
+                </Select>
               </div>
 
               <div className="col-span-2 space-y-1">
@@ -986,6 +1267,60 @@ export function WeeklySchedule() {
             </Button>
             <Button type="button" onClick={() => void onSaveEditModal()}>
               Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={Boolean(closeTargetShift)} onOpenChange={(open) => (!open ? setCloseTargetShift(null) : null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Close shift?</DialogTitle>
+            <DialogDescription>Closed shifts stay visible but become locked for editing.</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button type="button" variant="secondary" onClick={() => setCloseTargetShift(null)}>
+              Keep open
+            </Button>
+            <Button type="button" onClick={() => (closeTargetShift ? void closeShift(closeTargetShift) : undefined)}>
+              Close shift
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={Boolean(cancelTargetShift)} onOpenChange={(open) => (!open ? setCancelTargetShift(null) : null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Cancel shift?</DialogTitle>
+            <DialogDescription>Cancelled shifts are excluded from cost calculations.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-1">
+            <Label htmlFor="cancel-reason">Reason (optional)</Label>
+            <Input
+              id="cancel-reason"
+              value={cancelReason}
+              onChange={(event) => setCancelReason(event.target.value)}
+              placeholder="Reason for cancellation"
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => {
+                setCancelTargetShift(null);
+                setCancelReason("");
+              }}
+            >
+              Keep shift
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={() => (cancelTargetShift ? void cancelShift(cancelTargetShift, cancelReason) : undefined)}
+            >
+              Cancel shift
             </Button>
           </DialogFooter>
         </DialogContent>

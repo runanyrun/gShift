@@ -3,6 +3,7 @@ export type ShiftMetricsInput = {
   end_at: string;
   break_minutes?: number | null;
   hourly_wage: number;
+  status?: "open" | "closed" | "cancelled" | null;
 };
 
 export type ShiftMetrics = {
@@ -12,6 +13,14 @@ export type ShiftMetrics = {
 };
 
 export function calcShiftMetrics(input: ShiftMetricsInput): ShiftMetrics {
+  if (input.status === "cancelled") {
+    return {
+      duration_hours: 0,
+      shift_cost: 0,
+      hourly_wage: Number(input.hourly_wage) || 0,
+    };
+  }
+
   const startMs = new Date(input.start_at).getTime();
   const endMs = new Date(input.end_at).getTime();
   const safeBreakMinutes = Math.max(0, Number(input.break_minutes ?? 0));
