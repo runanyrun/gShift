@@ -13,6 +13,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/onboarding", label: "Onboarding" },
   { href: "/employees", label: "Employees" },
   { href: "/schedule", label: "Schedule" },
+  { href: "/reports", label: "Reports" },
   { href: "/settings/company", label: "Settings" },
 ];
 
