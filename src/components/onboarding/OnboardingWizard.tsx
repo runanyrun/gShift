@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { DEFAULT_FORMAT, makeFormatters, resolveFormatConfig } from "../../lib/format";
+import { LimitedModeAlert } from "../common/LimitedModeAlert";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
@@ -60,6 +61,11 @@ export function OnboardingWizard() {
   const router = useRouter();
   const [companyLocale, setCompanyLocale] = useState(DEFAULT_FORMAT.locale);
   const [companyCurrency, setCompanyCurrency] = useState(DEFAULT_FORMAT.currency);
+  const [companyTimeZone, setCompanyTimeZone] = useState("Europe/Istanbul");
+  const [companyWeekStartsOn, setCompanyWeekStartsOn] = useState<"mon" | "sun">("mon");
+  const [companyDefaultShiftStart, setCompanyDefaultShiftStart] = useState("09:00");
+  const [companyDefaultShiftEnd, setCompanyDefaultShiftEnd] = useState("17:00");
+  const [companyWarning, setCompanyWarning] = useState<string | null>(null);
   const formatConfig = useMemo(
     () => resolveFormatConfig({ locale: companyLocale, currency: companyCurrency }),
     [companyLocale, companyCurrency],
@@ -73,7 +79,7 @@ export function OnboardingWizard() {
   const [companyName, setCompanyName] = useState("");
   const [companySaved, setCompanySaved] = useState(false);
 
-  const [locations, setLocations] = useState<LocationDraft[]>([{ name: "", timezone: "Europe/Istanbul" }]);
+  const [locations, setLocations] = useState<LocationDraft[]>([{ name: "", timezone: companyTimeZone || "Europe/Istanbul" }]);
   const [locationsSaved, setLocationsSaved] = useState(false);
   const [createdLocations, setCreatedLocations] = useState<LocationRow[]>([]);
 
@@ -134,7 +140,7 @@ export function OnboardingWizard() {
   }
 
   function addLocation() {
-    setLocations((current) => [...current, { name: "", timezone: "Europe/Istanbul" }]);
+    setLocations((current) => [...current, { name: "", timezone: companyTimeZone || "Europe/Istanbul" }]);
   }
 
   function addRole() {
@@ -154,17 +160,40 @@ export function OnboardingWizard() {
   }
 
   async function saveCompany() {
-    const data = await fetchJson<{ id: string; name: string; locale?: string | null; currency?: string | null }>(
+    const data = await fetchJson<{
+      id: string;
+      name: string;
+      locale?: string | null;
+      currency?: string | null;
+      timezone?: string | null;
+      week_starts_on?: "mon" | "sun" | null;
+      default_shift_start?: string | null;
+      default_shift_end?: string | null;
+      warning?: string;
+    }>(
       "/api/onboarding/company",
       {
-      method: "POST",
-      body: JSON.stringify({ name: companyName.trim(), locale: companyLocale, currency: companyCurrency }),
-    },
+        method: "POST",
+        body: JSON.stringify({
+          name: companyName.trim(),
+          locale: companyLocale,
+          currency: companyCurrency,
+          timezone: companyTimeZone,
+          week_starts_on: companyWeekStartsOn,
+          default_shift_start: companyDefaultShiftStart,
+          default_shift_end: companyDefaultShiftEnd,
+        }),
+      },
     );
 
     setCompanyName(data.name);
     setCompanyLocale(data.locale || companyLocale);
     setCompanyCurrency(data.currency || companyCurrency);
+    setCompanyTimeZone(data.timezone || companyTimeZone);
+    setCompanyWeekStartsOn(data.week_starts_on === "sun" ? "sun" : "mon");
+    setCompanyDefaultShiftStart(data.default_shift_start || companyDefaultShiftStart);
+    setCompanyDefaultShiftEnd(data.default_shift_end || companyDefaultShiftEnd);
+    setCompanyWarning(data.warning ?? null);
     setCompanySaved(true);
   }
 
@@ -274,6 +303,7 @@ export function OnboardingWizard() {
 
     try {
       await generateDemoSchedule();
+      router.push("/schedule");
     } catch (generateError) {
       setError(generateError instanceof Error ? generateError.message : "Failed to generate demo schedule");
     } finally {
@@ -336,6 +366,52 @@ export function OnboardingWizard() {
                 </Select>
               </div>
             </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="company-timezone">Timezone</Label>
+              <Input
+                id="company-timezone"
+                value={companyTimeZone}
+                onChange={(event) => setCompanyTimeZone(event.target.value)}
+                placeholder="Europe/Istanbul"
+              />
+            </div>
+
+            <div className="grid gap-2 md:grid-cols-3">
+              <div>
+                <Label htmlFor="company-week-starts-on">Week starts on</Label>
+                <Select
+                  id="company-week-starts-on"
+                  value={companyWeekStartsOn}
+                  onChange={(event) => setCompanyWeekStartsOn(event.target.value === "sun" ? "sun" : "mon")}
+                >
+                  <option value="mon">Monday</option>
+                  <option value="sun">Sunday</option>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="company-default-shift-start">Default shift start</Label>
+                <Input
+                  id="company-default-shift-start"
+                  type="time"
+                  value={companyDefaultShiftStart}
+                  onChange={(event) => setCompanyDefaultShiftStart(event.target.value)}
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="company-default-shift-end">Default shift end</Label>
+                <Input
+                  id="company-default-shift-end"
+                  type="time"
+                  value={companyDefaultShiftEnd}
+                  onChange={(event) => setCompanyDefaultShiftEnd(event.target.value)}
+                />
+              </div>
+            </div>
+
+            {companyWarning ? <LimitedModeAlert warning={companyWarning} /> : null}
           </div>
         ) : null}
 
@@ -494,19 +570,13 @@ export function OnboardingWizard() {
             </div>
 
             <div className="rounded-md border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
-              Demo shifts: {createdEmployees.length} employee x 5 day x 09:00-17:00
+              Demo shifts: {createdEmployees.length} employee x 5 day x {companyDefaultShiftStart}-{companyDefaultShiftEnd}
               {createdRoles.length > 0 ? ` (role defaults e.g. ${createdRoles[0].name}: ${formatCurrency(createdRoles[0].hourly_wage_default ?? 0)})` : ""}
             </div>
 
             <Button type="button" onClick={() => void onGenerateSchedule()} disabled={!canNext || loading || scheduleGenerated}>
-              {scheduleGenerated ? "Demo week generated" : loading ? "Generating..." : "Generate demo week"}
+              {scheduleGenerated ? "Redirecting..." : loading ? "Generating..." : "Generate demo week and go to Schedule"}
             </Button>
-
-            {scheduleGenerated ? (
-              <Button type="button" variant="secondary" onClick={() => router.push("/schedule")}>
-                Go to Schedule
-              </Button>
-            ) : null}
           </div>
         ) : null}
       </div>

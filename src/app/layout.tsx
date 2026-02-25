@@ -1,4 +1,6 @@
 import { ReactNode } from "react";
+import "./globals.css";
+import { Toaster } from "../components/ui/sonner";
 
 interface RootLayoutProps {
   children: ReactNode;
@@ -7,7 +9,10 @@ interface RootLayoutProps {
 export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        {children}
+        <Toaster />
+      </body>
     </html>
   );
 }

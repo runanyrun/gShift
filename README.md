@@ -127,6 +127,18 @@ npm run verify:cloud
 
 This command runs `typecheck`, `test:env`, and `test:all` in cloud mode.
 
+## Vitest Integration Tests
+
+Run:
+
+```bash
+npm install --include=dev
+npm run -s typecheck
+npm test
+```
+
+If `NODE_ENV=production` (or dev dependencies are omitted), Vitest and RTL packages are not installed and `npm test` may fail with `vitest: command not found`.
+
 ## Permission Guard Smoke Check
 
 1. Run checks:

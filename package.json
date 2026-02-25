@@ -41,7 +41,10 @@
     "test:ssr-auth": "npm run test:ssr",
     "verify:qsft9": "bash scripts/verify-qsft9.sh",
     "verify:cloud": "bash scripts/verify-cloud.sh",
-    "verify": "npm run verify:cloud"
+    "verify": "npm run verify:cloud",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui"
   },
   "dependencies": {
     "@supabase/ssr": "^0.5.2",
@@ -52,10 +55,15 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.4.8",
+    "@testing-library/react": "^16.0.1",
     "@types/node": "^22.17.1",
     "@types/react": "^19.1.9",
     "@types/react-dom": "^19.1.7",
+    "@vitest/ui": "^2.1.1",
+    "jsdom": "^25.0.1",
     "ts-node": "^10.9.2",
-    "typescript": "^5.9.2"
+    "typescript": "^5.9.2",
+    "vitest": "^2.1.1"
   }
 }

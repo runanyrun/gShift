@@ -3,6 +3,8 @@
 import type { DragEvent } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { DEFAULT_FORMAT, makeFormatters, resolveFormatConfig } from "../../lib/format";
+import { calcShiftMetrics } from "../../lib/shift-metrics";
+import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../ui/dialog";
 import { Input } from "../ui/input";
@@ -46,6 +48,15 @@ type Shift = {
   break_minutes: number;
   hourly_wage: number;
   notes: string | null;
+};
+
+type CompanySettings = {
+  locale?: string;
+  currency?: string;
+  weekly_budget_limit?: number | string | null;
+  week_starts_on?: "mon" | "sun";
+  default_shift_start?: string;
+  default_shift_end?: string;
 };
 
 type ShiftInput = {
@@ -164,13 +175,44 @@ function timeOfIsoInTimeZone(iso: string, timeZone: string): string {
   return `${pad2(zoned.hour)}:${pad2(zoned.minute)}`;
 }
 
-function startOfWeekMonday(base: Date) {
+function startOfWeek(base: Date, weekStartsOn: "mon" | "sun") {
   const date = new Date(base);
   const day = date.getDay();
-  const diff = day === 0 ? -6 : 1 - day;
+  const diff = weekStartsOn === "sun" ? -day : day === 0 ? -6 : 1 - day;
   date.setDate(date.getDate() + diff);
   date.setHours(0, 0, 0, 0);
   return date;
+}
+
+function parseDateOnly(day: string): Date {
+  const [year, month, date] = day.split("-").map(Number);
+  return new Date(year, month - 1, date, 0, 0, 0, 0);
+}
+
+function parseTimeInput(value: string | undefined, fallbackHour: number, fallbackMinute: number) {
+  if (!value) {
+    return { hour: fallbackHour, minute: fallbackMinute };
+  }
+
+  const [hourRaw, minuteRaw] = value.split(":");
+  const hour = Number(hourRaw);
+  const minute = Number(minuteRaw);
+  if (!Number.isInteger(hour) || !Number.isInteger(minute) || hour < 0 || hour > 23 || minute < 0 || minute > 59) {
+    return { hour: fallbackHour, minute: fallbackMinute };
+  }
+
+  return { hour, minute };
+}
+
+function normalizeBudgetLimit(value: unknown): number | null {
+  if (value === null || value === undefined || value === "") {
+    return null;
+  }
+  const parsed = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    return null;
+  }
+  return parsed;
 }
 
 function buildWeekDays(weekStart: string) {
@@ -234,7 +276,15 @@ export function WeeklySchedule() {
   const [shifts, setShifts] = useState<Shift[]>([]);
 
   const [selectedLocationId, setSelectedLocationId] = useState<string>("");
-  const [weekStart, setWeekStart] = useState<string>(() => toDateOnly(startOfWeekMonday(new Date())));
+  const [weekStart, setWeekStart] = useState<string>(() => toDateOnly(startOfWeek(new Date(), "mon")));
+  const [companySettings, setCompanySettings] = useState<Required<CompanySettings>>({
+    locale: DEFAULT_FORMAT.locale,
+    currency: DEFAULT_FORMAT.currency,
+    weekly_budget_limit: null,
+    week_starts_on: "mon",
+    default_shift_start: "09:00",
+    default_shift_end: "17:00",
+  });
 
   const [editingShift, setEditingShift] = useState<EditableShift | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -249,10 +299,10 @@ export function WeeklySchedule() {
   );
   const tz = selectedLocation?.timezone ?? DEFAULT_FORMAT.timeZone ?? "Europe/Istanbul";
   const formatConfig = useMemo(
-    () => resolveFormatConfig({ ...DEFAULT_FORMAT, timeZone: tz }),
-    [tz],
+    () => resolveFormatConfig({ locale: companySettings.locale, currency: companySettings.currency, timeZone: tz }),
+    [companySettings.locale, companySettings.currency, tz],
   );
-  const { formatDateDisplay, formatTimeHM } = useMemo(() => makeFormatters(formatConfig), [formatConfig]);
+  const { formatDateDisplay, formatTimeHM, formatNumber, formatCurrency } = useMemo(() => makeFormatters(formatConfig), [formatConfig]);
 
   const weekDays = useMemo(() => buildWeekDays(weekStart), [weekStart]);
   const weekLabel = useMemo(() => {
@@ -288,13 +338,22 @@ export function WeeklySchedule() {
     setLoading(true);
     setError(null);
     try {
-      const [locationRows, roleRows] = await Promise.all([
+      const [locationRows, roleRows, companySettingsRow] = await Promise.all([
         fetchJson<Location[]>("/api/locations"),
         fetchJson<Role[]>("/api/roles"),
+        fetchJson<CompanySettings>("/api/company/settings"),
       ]);
 
       setLocations(locationRows);
       setRoles(roleRows);
+      setCompanySettings({
+        locale: companySettingsRow.locale ?? DEFAULT_FORMAT.locale,
+        currency: companySettingsRow.currency ?? DEFAULT_FORMAT.currency,
+        weekly_budget_limit: normalizeBudgetLimit(companySettingsRow.weekly_budget_limit),
+        week_starts_on: companySettingsRow.week_starts_on === "sun" ? "sun" : "mon",
+        default_shift_start: companySettingsRow.default_shift_start ?? "09:00",
+        default_shift_end: companySettingsRow.default_shift_end ?? "17:00",
+      });
 
       const initialLocationId = selectedLocationId || locationRows[0]?.id || "";
       setSelectedLocationId(initialLocationId);
@@ -507,6 +566,8 @@ export function WeeklySchedule() {
 
     const role = roles.find((item) => item.id === employee.role_id);
     const hourlyWage = employee.hourly_rate ?? role?.hourly_wage_default ?? 0;
+    const defaultStart = parseTimeInput(companySettings.default_shift_start, 9, 0);
+    const defaultEnd = parseTimeInput(companySettings.default_shift_end, 17, 0);
 
     const tempId = `tmp-${Math.random().toString(36).slice(2, 10)}-${Date.now()}`;
     const tempShift: Shift = {
@@ -514,8 +575,8 @@ export function WeeklySchedule() {
       location_id: selectedLocationId,
       employee_id: employee.id,
       role_id: employee.role_id,
-      start_at: makeIsoWithZone(dateStr, 9, 0, tz),
-      end_at: makeIsoWithZone(dateStr, 17, 0, tz),
+      start_at: makeIsoWithZone(dateStr, defaultStart.hour, defaultStart.minute, tz),
+      end_at: makeIsoWithZone(dateStr, defaultEnd.hour, defaultEnd.minute, tz),
       break_minutes: 0,
       hourly_wage: hourlyWage,
       notes: null,
@@ -601,6 +662,13 @@ export function WeeklySchedule() {
   }, [selectedLocationId, weekStart]);
 
   useEffect(() => {
+    setWeekStart((current) => {
+      const aligned = toDateOnly(startOfWeek(parseDateOnly(current), companySettings.week_starts_on));
+      return aligned === current ? current : aligned;
+    });
+  }, [companySettings.week_starts_on]);
+
+  useEffect(() => {
     if (Object.keys(upsertQueue).length === 0) {
       return;
     }
@@ -629,6 +697,25 @@ export function WeeklySchedule() {
     return map;
   }, [shifts, tz]);
 
+  const dayCostTotals = useMemo(() => {
+    const totals = new Map<string, number>();
+    for (const shift of shifts) {
+      const day = dateOfIsoLocal(shift.start_at, tz);
+      const metrics = calcShiftMetrics(shift);
+      totals.set(day, (totals.get(day) ?? 0) + metrics.shift_cost);
+    }
+    return totals;
+  }, [shifts, tz]);
+
+  const weekCostTotal = useMemo(
+    () => [...dayCostTotals.values()].reduce((sum, current) => sum + current, 0),
+    [dayCostTotals],
+  );
+  const weeklyBudgetLimit = normalizeBudgetLimit(companySettings.weekly_budget_limit);
+  const exceededBudgetAmount = weeklyBudgetLimit !== null && weekCostTotal > weeklyBudgetLimit
+    ? weekCostTotal - weeklyBudgetLimit
+    : 0;
+
   if (loading && locations.length === 0) {
     return <div className="text-sm text-slate-600">Loading schedule...</div>;
   }
@@ -655,7 +742,9 @@ export function WeeklySchedule() {
           >
             Previous
           </Button>
-          <p className="min-w-[220px] text-center text-sm font-medium text-slate-700">{weekLabel}</p>
+          <p data-testid="week-range-label" className="min-w-[220px] text-center text-sm font-medium text-slate-700">
+            {weekLabel}
+          </p>
           <Button
             type="button"
             variant="outline"
@@ -668,6 +757,10 @@ export function WeeklySchedule() {
         <Button type="button" onClick={() => void copyLastWeek()} disabled={!selectedLocationId || saving}>
           Copy last week
         </Button>
+        <p className="text-sm text-slate-700">Week cost: {formatCurrency(weekCostTotal)}</p>
+        {exceededBudgetAmount > 0 ? (
+          <Badge variant="destructive">Weekly budget exceeded by {formatCurrency(exceededBudgetAmount)}</Badge>
+        ) : null}
 
         {saving ? <p className="text-sm text-slate-600">Saving...</p> : null}
       </header>
@@ -679,8 +772,13 @@ export function WeeklySchedule() {
           <div className="grid grid-cols-[220px_repeat(7,minmax(140px,1fr))] border-b border-slate-200 bg-slate-50">
             <div className="p-3 text-sm font-semibold text-slate-700">Employee</div>
             {weekDays.map((dayStr) => (
-              <div key={dayStr} className="border-l border-slate-200 p-3 text-sm font-semibold text-slate-700">
-                {dateLabel(dayStr, tz, formatDateDisplay)}
+              <div
+                key={dayStr}
+                data-testid={`week-day-${dayStr}`}
+                className="border-l border-slate-200 p-3 text-sm font-semibold text-slate-700"
+              >
+                <p>{dateLabel(dayStr, tz, formatDateDisplay)}</p>
+                <p className="text-xs font-medium text-slate-500">{formatCurrency(dayCostTotals.get(dayStr) ?? 0)}</p>
               </div>
             ))}
           </div>
@@ -704,7 +802,9 @@ export function WeeklySchedule() {
                   >
                     <div className="space-y-2">
                       {cellShifts.map((shift) => {
+                        const employeeName = employees.find((candidate) => candidate.id === shift.employee_id)?.full_name ?? "Employee";
                         const roleName = roles.find((role) => role.id === shift.role_id)?.name ?? "Role";
+                        const metrics = calcShiftMetrics(shift);
                         return (
                           <div
                             key={shift.id}
@@ -715,7 +815,11 @@ export function WeeklySchedule() {
                             title="Drag to another day/employee or click to edit"
                           >
                             <p className="font-semibold">{fmtTimeRange(shift.start_at, shift.end_at, formatTimeHM)}</p>
-                            <p>{roleName}</p>
+                            <p>{employeeName}</p>
+                            <p>{roleName} • {formatNumber(metrics.duration_hours)}h</p>
+                            <p className="text-slate-600">
+                              {formatCurrency(metrics.hourly_wage)}/h • {formatCurrency(metrics.shift_cost)}
+                            </p>
                           </div>
                         );
                       })}

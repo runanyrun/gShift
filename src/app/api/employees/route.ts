@@ -1,23 +1,36 @@
 import { z } from "zod";
 import { getServerSupabase, requireCompanyId, requireUser } from "../../../lib/auth";
 import { handleRouteError, HttpError, jsonOk, parseJson } from "../../../lib/http";
+import { normalizeName, normalizeRate } from "../../../lib/normalize";
 
-const createEmployeeSchema = z.object({
-  location_id: z.string().uuid(),
-  role_id: z.string().uuid(),
-  full_name: z.string().trim().min(1).max(160),
-  active: z.boolean().optional(),
-  hourly_rate: z
-    .preprocess(
-      (value) => (value === null || value === undefined || value === "" ? null : value),
-      z.coerce.number().min(0).max(9999999999.99).nullable(),
+const bodySchema = z.object({
+  employees: z
+    .array(
+      z.object({
+        location_id: z.string().uuid(),
+        role_id: z.string().uuid(),
+        full_name: z.string().trim().min(1).max(160),
+        hourly_rate: z.preprocess((value) => normalizeRate(value), z.number().min(0).nullable()),
+      }),
     )
-    .optional(),
+    .min(1),
 });
 
 const listEmployeesQuerySchema = z.object({
   locationId: z.string().uuid().optional(),
 });
+
+type EmployeeRow = {
+  id: string;
+  full_name: string;
+  location_id: string;
+  role_id: string;
+  hourly_rate: number | null;
+};
+
+function keyOf(fullName: string, locationId: string) {
+  return `${normalizeName(fullName).toLocaleLowerCase("tr-TR")}::${locationId}`;
+}
 
 export async function GET(request: Request) {
   try {
@@ -61,27 +74,93 @@ export async function POST(request: Request) {
     const supabase = await getServerSupabase();
     await requireUser(supabase);
     const companyId = await requireCompanyId(supabase);
+    const body = await parseJson(request, bodySchema);
 
-    const body = await parseJson(request, createEmployeeSchema);
+    const normalized = body.employees.map((item) => ({
+      full_name: normalizeName(item.full_name),
+      location_id: item.location_id,
+      role_id: item.role_id,
+      hourly_rate: normalizeRate(item.hourly_rate),
+    }));
 
-    const { data, error } = await supabase
+    const { data: existingRows, error: existingError } = await supabase
       .from("employees")
-      .insert({
-        company_id: companyId,
-        location_id: body.location_id,
-        role_id: body.role_id,
-        full_name: body.full_name,
-        active: body.active ?? true,
-        hourly_rate: body.hourly_rate ?? null,
-      })
-      .select("id, company_id, location_id, role_id, full_name, active, hourly_rate, created_at, updated_at")
-      .single();
+      .select("id, full_name, location_id, role_id, hourly_rate")
+      .eq("company_id", companyId);
 
-    if (error) {
-      throw new HttpError(400, error.message);
+    if (existingError) {
+      throw new HttpError(400, existingError.message);
     }
 
-    return jsonOk(data, 201);
+    const existing = (existingRows ?? []) as EmployeeRow[];
+    const existingByKey = new Map(existing.map((row) => [keyOf(row.full_name, row.location_id), row]));
+
+    const seenPayloadKeys = new Set<string>();
+    const deduped = normalized.filter((item) => {
+      const key = keyOf(item.full_name, item.location_id);
+      if (seenPayloadKeys.has(key)) {
+        return false;
+      }
+      seenPayloadKeys.add(key);
+      return true;
+    });
+
+    const toInsert = deduped.filter((item) => !existingByKey.has(keyOf(item.full_name, item.location_id)));
+    const toUpdate = deduped.filter((item) => existingByKey.has(keyOf(item.full_name, item.location_id)));
+
+    let updated: EmployeeRow[] = [];
+    let inserted: EmployeeRow[] = [];
+
+    if (toUpdate.length > 0) {
+      const updateResults = await Promise.all(
+        toUpdate.map(async (item) => {
+          const existingRow = existingByKey.get(keyOf(item.full_name, item.location_id));
+          if (!existingRow) {
+            return null;
+          }
+
+          const { data, error } = await supabase
+            .from("employees")
+            .update({
+              role_id: item.role_id,
+              hourly_rate: item.hourly_rate,
+            })
+            .eq("company_id", companyId)
+            .eq("id", existingRow.id)
+            .select("id, full_name, location_id, role_id, hourly_rate")
+            .single();
+
+          if (error) {
+            throw new HttpError(400, error.message);
+          }
+          return data as EmployeeRow;
+        }),
+      );
+
+      updated = updateResults.filter((row): row is EmployeeRow => row !== null);
+    }
+
+    if (toInsert.length > 0) {
+      const { data, error } = await supabase
+        .from("employees")
+        .insert(
+          toInsert.map((item) => ({
+            company_id: companyId,
+            location_id: item.location_id,
+            role_id: item.role_id,
+            full_name: item.full_name,
+            hourly_rate: item.hourly_rate,
+          })),
+        )
+        .select("id, full_name, location_id, role_id, hourly_rate");
+
+      if (error) {
+        throw new HttpError(400, error.message);
+      }
+      inserted = (data ?? []) as EmployeeRow[];
+    }
+
+    return jsonOk([...updated, ...inserted], inserted.length > 0 ? 201 : 200);
   } catch (error) {
     return handleRouteError(error);
   }

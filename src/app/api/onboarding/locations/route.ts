@@ -1,13 +1,14 @@
 import { z } from "zod";
 import { getServerSupabase, requireCompanyId, requireUser } from "../../../../lib/auth";
 import { handleRouteError, HttpError, jsonOk, parseJson } from "../../../../lib/http";
+import { normalizeName } from "../../../../lib/normalize";
 
 const bodySchema = z.object({
   locations: z
     .array(
       z.object({
         name: z.string().trim().min(1).max(160),
-        timezone: z.string().trim().min(1).max(120).default("Europe/Istanbul"),
+        timezone: z.string().max(120).optional(),
       }),
     )
     .min(1),
@@ -19,16 +20,49 @@ function keyOf(name: string, timezone: string) {
   return `${name.trim().toLocaleLowerCase("tr-TR")}::${timezone.trim()}`;
 }
 
+function isColumnMissingError(error: { message?: string; code?: string } | null) {
+  if (!error) {
+    return false;
+  }
+  const msg = error.message?.toLowerCase() ?? "";
+  return (
+    error.code === "42703"
+    || error.code === "PGRST204"
+    || msg.includes("column")
+    || msg.includes("does not exist")
+    || msg.includes("schema cache")
+  );
+}
+
+async function resolveCompanyTimezone(
+  supabase: Awaited<ReturnType<typeof getServerSupabase>>,
+  companyId: string,
+): Promise<string> {
+  const { data, error } = await supabase
+    .from("companies")
+    .select("timezone")
+    .eq("id", companyId)
+    .maybeSingle();
+
+  if (error && !isColumnMissingError(error)) {
+    throw new HttpError(400, error.message);
+  }
+
+  const timezone = (data as { timezone?: string | null } | null)?.timezone?.trim();
+  return timezone && timezone.length > 0 ? timezone : "Europe/Istanbul";
+}
+
 export async function POST(request: Request) {
   try {
     const supabase = await getServerSupabase();
     await requireUser(supabase);
     const companyId = await requireCompanyId(supabase);
     const body = await parseJson(request, bodySchema);
+    const companyTimezone = await resolveCompanyTimezone(supabase, companyId);
 
     const normalized = body.locations.map((item) => ({
-      name: item.name.trim(),
-      timezone: item.timezone.trim(),
+      name: normalizeName(item.name),
+      timezone: item.timezone?.trim() ? item.timezone.trim() : companyTimezone,
     }));
 
     const requestedKeys = new Set(normalized.map((item) => keyOf(item.name, item.timezone)));

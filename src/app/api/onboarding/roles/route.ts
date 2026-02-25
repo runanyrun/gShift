@@ -1,13 +1,14 @@
 import { z } from "zod";
 import { getServerSupabase, requireCompanyId, requireUser } from "../../../../lib/auth";
 import { handleRouteError, HttpError, jsonOk, parseJson } from "../../../../lib/http";
+import { normalizeName, normalizeRate } from "../../../../lib/normalize";
 
 const bodySchema = z.object({
   roles: z
     .array(
       z.object({
         name: z.string().trim().min(1).max(120),
-        hourly_wage_default: z.number().min(0).optional().nullable(),
+        hourly_wage_default: z.preprocess((value) => normalizeRate(value), z.number().min(0).nullable()),
       }),
     )
     .min(1),
@@ -27,8 +28,8 @@ export async function POST(request: Request) {
     const body = await parseJson(request, bodySchema);
 
     const normalized = body.roles.map((item) => ({
-      name: item.name.trim(),
-      hourly_wage_default: item.hourly_wage_default ?? null,
+      name: normalizeName(item.name),
+      hourly_wage_default: normalizeRate(item.hourly_wage_default),
     }));
 
     const requestedKeys = new Set(normalized.map((item) => keyOf(item.name)));
