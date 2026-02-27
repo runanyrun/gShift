@@ -2,28 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { canManage as canManagePermissions } from "../../core/auth/permissions";
 import { useMe } from "../../core/auth/useMe";
+import { getNavItemsForPermissions, NavItem } from "../../features/navigation/nav-model";
 import { Badge } from "../ui/badge";
-
-export type NavItem = {
-  href: string;
-  label: string;
-  badge?: string;
-};
-
-export function getNavItems(canManage: boolean): NavItem[] {
-  return [
-    { href: "/dashboard", label: "Dashboard" },
-    { href: canManage ? "/manager/jobs" : "/jobs", label: canManage ? "Jobs" : "Find Jobs" },
-    { href: "/schedule", label: "Schedule" },
-    { href: "/reports", label: "Reports" },
-    { href: "/notifications", label: "Notifications" },
-    { href: "/employees", label: "Employees" },
-    { href: "/settings/company", label: "Settings" },
-    { href: "/onboarding", label: "Setup" },
-  ];
-}
 
 function isActive(pathname: string, href: string) {
   if (pathname === href) {
@@ -43,7 +24,7 @@ function linkClasses(active: boolean) {
 export function SidebarNav() {
   const pathname = usePathname();
   const { data: me } = useMe();
-  const navItems = getNavItems(canManagePermissions(me?.permissions));
+  const navItems = getNavItemsForPermissions(me?.permissions);
 
   return (
     <aside className="hidden w-64 shrink-0 border-r border-slate-200 bg-white md:block">
@@ -56,9 +37,13 @@ export function SidebarNav() {
         </div>
         <nav aria-label="Primary" className="space-y-1">
           {navItems.map((item) => (
-            <Link key={item.href} href={item.href} className={linkClasses(isActive(pathname, item.href))}>
+            <Link
+              key={item.href}
+              href={item.href}
+              className={linkClasses(isActive(pathname, item.href))}
+              data-testid={`nav-${item.id}`}
+            >
               <span>{item.label}</span>
-              {item.badge ? <Badge variant="secondary">{item.badge}</Badge> : null}
             </Link>
           ))}
         </nav>

@@ -457,7 +457,7 @@ export function ManagerJobsPage() {
                       {...form.register("notes")}
                     />
                   </div>
-                  <Button type="submit" disabled={submitting}>
+                  <Button type="submit" disabled={submitting} data-testid="btn-new-job">
                     {submitting ? "Creating..." : "Create job"}
                   </Button>
                   {Object.keys(form.formState.errors).length > 0 ? (

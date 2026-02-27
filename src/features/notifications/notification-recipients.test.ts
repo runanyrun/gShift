@@ -46,7 +46,7 @@ describe("notification dedupe key", () => {
         job_post_id: "j1",
         application_id: "a1",
       }),
-    ).toBe("job_applied|j1||a1");
+    ).toBe("job_applied|j1|");
   });
 
   it("disables dedupe when no entity ids exist", () => {

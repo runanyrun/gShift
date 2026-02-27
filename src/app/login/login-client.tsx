@@ -6,13 +6,14 @@ import { signInWithEmailPassword } from "../../lib/auth-client";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
-import { AuthCardLayout, AuthFooterLink } from "../../components/auth/AuthCardLayout";
+import { AuthFooterLink } from "../../components/auth/AuthCardLayout";
+import { AuthMarketingLayout } from "../../components/auth/AuthMarketingLayout";
 
 export function LoginClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const workspace = searchParams.get("workspace");
-  const next = searchParams.get("next") || (workspace ? `/dashboard?workspace=${encodeURIComponent(workspace)}` : "/dashboard");
+  const next = searchParams.get("next") || (workspace ? `/?workspace=${encodeURIComponent(workspace)}` : "/");
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -39,7 +40,7 @@ export function LoginClient() {
   }
 
   return (
-    <AuthCardLayout
+    <AuthMarketingLayout
       title="Sign in"
       description="Access your workspace dashboard, schedules, and reports."
       footer={<AuthFooterLink href="/signup" label="Create one" text="No account yet?" />}
@@ -72,6 +73,6 @@ export function LoginClient() {
           {loading ? "Signing in..." : "Sign in"}
         </Button>
       </form>
-    </AuthCardLayout>
+    </AuthMarketingLayout>
   );
 }

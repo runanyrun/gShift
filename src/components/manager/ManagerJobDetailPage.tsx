@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Sheet, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "../ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { PageHeader } from "../layout/PageHeader";
+import { Breadcrumbs } from "../ui/breadcrumbs";
 
 type JobDetail = {
   id: string;
@@ -313,6 +314,14 @@ export function ManagerJobDetailPage({ jobId }: { jobId: string }) {
 
   return (
     <section className="space-y-4">
+      <Breadcrumbs
+        items={[
+          { label: "Jobs", href: "/manager/jobs" },
+          { label: `Job #${job.id.slice(0, 8)}` },
+        ]}
+        backHref="/manager/jobs"
+        backLabel="Back to jobs"
+      />
       <PageHeader
         title="Job Detail"
         description="Manage lifecycle transitions and review immutable audit history."

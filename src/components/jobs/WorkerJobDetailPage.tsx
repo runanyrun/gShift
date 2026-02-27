@@ -7,6 +7,7 @@ import { Button } from "../ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { PageHeader } from "../layout/PageHeader";
 import { Skeleton } from "../ui/skeleton";
+import { Breadcrumbs } from "../ui/breadcrumbs";
 
 type JobDetail = {
   id: string;
@@ -96,6 +97,14 @@ export function WorkerJobDetailPage({ jobId }: { jobId: string }) {
 
   return (
     <section className="space-y-6">
+      <Breadcrumbs
+        items={[
+          { label: "Jobs", href: "/jobs" },
+          { label: `Job #${job.id.slice(0, 8)}` },
+        ]}
+        backHref="/jobs"
+        backLabel="Back to jobs"
+      />
       <PageHeader
         title={job.title}
         description="Review details and apply."

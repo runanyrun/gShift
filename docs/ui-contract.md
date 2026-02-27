@@ -26,6 +26,8 @@ This contract is the source of truth for protected product UI in gShift.
   - If a page needs list + create, split them into tabs.
 - Keep dense detail out of list pages.
   - use `Sheet` or dedicated detail route for heavy edit flows.
+- Detail pages must include breadcrumbs + explicit back action.
+  - apply on `/:module/new` and `/:module/:id` routes to keep navigation context clear.
 - Use English microcopy consistently across labels, helper text, empty states, and errors.
 
 ## Spacing Contract

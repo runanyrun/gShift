@@ -1,7 +1,7 @@
 import { MeResponseData } from "./me.types";
 import { canManage, permissionsLoaded } from "./permissions";
 
-export type PostLoginRoute = "/onboarding" | "/dashboard" | "/my";
+export type PostLoginRoute = "/onboarding" | "/dashboard" | "/jobs";
 
 export function resolvePostLoginRoute(me: MeResponseData): PostLoginRoute {
   if (!me.tenant || !me.employee) {
@@ -9,12 +9,12 @@ export function resolvePostLoginRoute(me: MeResponseData): PostLoginRoute {
   }
 
   if (!permissionsLoaded(me.permissions)) {
-    return "/my";
+    return "/jobs";
   }
 
   if (canManage(me.permissions)) {
     return "/dashboard";
   }
 
-  return "/my";
+  return "/jobs";
 }

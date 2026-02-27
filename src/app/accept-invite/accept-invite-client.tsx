@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "../../components/ui/button";
-import { AuthCardLayout } from "../../components/auth/AuthCardLayout";
+import { AuthMarketingLayout } from "../../components/auth/AuthMarketingLayout";
 import { useMe } from "../../core/auth/useMe";
 import { createBrowserSupabaseClient } from "../../core/db/supabase";
 
@@ -97,7 +97,7 @@ export function AcceptInviteClient() {
   const dashboardHref = workspace ? `/dashboard?workspace=${encodeURIComponent(workspace)}` : "/dashboard";
 
   return (
-    <AuthCardLayout title="Accept invite" description="Join your workspace and connect your employee profile.">
+    <AuthMarketingLayout title="Accept invite" description="Join your workspace and connect your employee profile.">
       {!token ? <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">Invite token is missing.</p> : null}
 
       {!isLoggedIn ? (
@@ -146,6 +146,6 @@ export function AcceptInviteClient() {
           )}
         </div>
       ) : null}
-    </AuthCardLayout>
+    </AuthMarketingLayout>
   );
 }

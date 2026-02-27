@@ -106,7 +106,13 @@ export function NotificationsBell() {
       <DropdownMenuContent align="end" className="w-[360px]">
         <div className="flex items-center justify-between px-2 py-1.5">
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Activity</p>
-          <Button type="button" variant="outline" className="h-7 px-2 text-xs" onClick={() => void markAllRead()}>
+          <Button
+            type="button"
+            variant="outline"
+            className="h-7 px-2 text-xs"
+            data-testid="btn-mark-all-read"
+            onClick={() => void markAllRead()}
+          >
             Mark all read
           </Button>
         </div>

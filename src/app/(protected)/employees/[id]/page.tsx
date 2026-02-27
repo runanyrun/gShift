@@ -11,6 +11,7 @@ import { Card, CardContent } from "../../../../components/ui/card";
 import { EmptyState } from "../../../../components/ui/empty-state";
 import { Section } from "../../../../components/ui/section";
 import { Skeleton } from "../../../../components/ui/skeleton";
+import { Breadcrumbs } from "../../../../components/ui/breadcrumbs";
 import { EmployeeForm } from "../../../../shared/components/employee-form";
 
 interface EmployeePayload {
@@ -130,6 +131,14 @@ export default function EmployeeEditPage() {
 
   return (
     <section className="space-y-6">
+      <Breadcrumbs
+        items={[
+          { label: "Employees", href: "/employees" },
+          { label: `${employee.firstName} ${employee.lastName}`.trim() || "Employee" },
+        ]}
+        backHref="/employees"
+        backLabel="Back to employees"
+      />
       <PageHeader
         title={`${employee.firstName} ${employee.lastName}`.trim() || "Employee"}
         description="Primary task: update employee profile. Access details stay in a separate section."
