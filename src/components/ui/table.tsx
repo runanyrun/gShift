@@ -25,15 +25,23 @@ export function TableFooter({ className, ...props }: React.HTMLAttributes<HTMLTa
 }
 
 export function TableRow({ className, ...props }: React.HTMLAttributes<HTMLTableRowElement>) {
-  return <tr className={cx("border-b border-slate-200 transition-colors hover:bg-slate-50/70", className)} {...props} />;
+  return <tr className={cx("border-b border-slate-100 transition-colors hover:bg-slate-50", className)} {...props} />;
 }
 
 export function TableHead({ className, ...props }: React.ThHTMLAttributes<HTMLTableCellElement>) {
-  return <th className={cx("h-10 px-3 text-left align-middle font-medium text-slate-600", className)} {...props} />;
+  return (
+    <th
+      className={cx(
+        "h-10 px-3 text-left align-middle text-xs font-semibold uppercase tracking-wide text-slate-500",
+        className,
+      )}
+      {...props}
+    />
+  );
 }
 
 export function TableCell({ className, ...props }: React.TdHTMLAttributes<HTMLTableCellElement>) {
-  return <td className={cx("p-3 align-middle", className)} {...props} />;
+  return <td className={cx("px-3 py-3 align-middle text-sm text-slate-700", className)} {...props} />;
 }
 
 export function TableCaption({ className, ...props }: React.HTMLAttributes<HTMLTableCaptionElement>) {

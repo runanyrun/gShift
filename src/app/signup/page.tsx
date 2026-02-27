@@ -72,34 +72,34 @@ export default function SignupPage() {
       description="Set up your workspace and invite your team in a few steps."
       footer={<AuthFooterLink href="/login" label="Sign in" text="Already have an account?" />}
     >
-      <form onSubmit={onSubmit} className="space-y-3">
-        <div className="space-y-1">
-          <Label htmlFor="signup-email">Email</Label>
+      <form onSubmit={onSubmit} className="space-y-4">
+        <div className="space-y-1.5">
+          <Label htmlFor="signup-email">Work email</Label>
           <Input
             id="signup-email"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
             type="email"
-            autoComplete="email"
             placeholder="name@company.com"
+            autoComplete="email"
             required
           />
           <p className="text-xs text-slate-500">This will be the workspace owner login.</p>
         </div>
-        <div className="space-y-1">
+        <div className="space-y-1.5">
           <Label htmlFor="signup-password">Password</Label>
           <Input
             id="signup-password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
             type="password"
-            autoComplete="new-password"
             placeholder="At least 8 characters"
+            autoComplete="new-password"
             required
           />
           <p className="text-xs text-slate-500">Use a strong password with letters and numbers.</p>
         </div>
-        <div className="space-y-1">
+        <div className="space-y-1.5">
           <Label htmlFor="signup-company">Company name</Label>
           <Input
             id="signup-company"
@@ -111,17 +111,45 @@ export default function SignupPage() {
           />
           <p className="text-xs text-slate-500">Shown to your team across the app.</p>
         </div>
-        <div className="space-y-1">
-          <Label htmlFor="signup-first">First name (optional)</Label>
-          <Input id="signup-first" value={firstName} onChange={(event) => setFirstName(event.target.value)} type="text" />
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1.5">
+            <Label htmlFor="signup-first">First name</Label>
+            <Input
+              id="signup-first"
+              value={firstName}
+              onChange={(event) => setFirstName(event.target.value)}
+              type="text"
+              placeholder="Optional"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="signup-last">Last name</Label>
+            <Input
+              id="signup-last"
+              value={lastName}
+              onChange={(event) => setLastName(event.target.value)}
+              type="text"
+              placeholder="Optional"
+            />
+          </div>
         </div>
-        <div className="space-y-1">
-          <Label htmlFor="signup-last">Last name (optional)</Label>
-          <Input id="signup-last" value={lastName} onChange={(event) => setLastName(event.target.value)} type="text" />
-        </div>
-        {message ? <p className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{message}</p> : null}
-        {error ? <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p> : null}
-        <Button type="submit" disabled={loading} className="w-full">
+        {message ? (
+          <div className="flex items-start gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2.5">
+            <svg className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+            </svg>
+            <p className="text-sm text-emerald-700">{message}</p>
+          </div>
+        ) : null}
+        {error ? (
+          <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2.5">
+            <svg className="mt-0.5 h-4 w-4 shrink-0 text-red-500" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
+            </svg>
+            <p className="text-sm text-red-700">{error}</p>
+          </div>
+        ) : null}
+        <Button type="submit" disabled={loading} className="w-full" size="lg">
           {loading ? (
             <span className="inline-flex items-center gap-2">
               <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" aria-hidden="true" />

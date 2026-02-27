@@ -59,22 +59,22 @@ export function LoginClient() {
       forgotPasswordDisabled
       footer={<AuthFooterLink href="/signup" label="Create one" text="No account yet?" />}
     >
-      <form onSubmit={onSubmit} className="space-y-3">
-        <div className="space-y-1">
-          <Label htmlFor="login-email">Email</Label>
+      <form onSubmit={onSubmit} className="space-y-4">
+        <div className="space-y-1.5">
+          <Label htmlFor="login-email">Email address</Label>
           <Input
             id="login-email"
             data-testid="auth-email"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
             type="email"
-            autoComplete="email"
             placeholder="name@company.com"
+            autoComplete="email"
             required
           />
           <p className="text-xs text-slate-500">Use your company email address.</p>
         </div>
-        <div className="space-y-1">
+        <div className="space-y-1.5">
           <Label htmlFor="login-password">Password</Label>
           <Input
             id="login-password"
@@ -82,18 +82,21 @@ export function LoginClient() {
             value={password}
             onChange={(event) => setPassword(event.target.value)}
             type="password"
-            autoComplete="current-password"
             placeholder="Enter your password"
+            autoComplete="current-password"
             required
           />
           <p className="text-xs text-slate-500">Minimum 8 characters.</p>
         </div>
         {error ? (
-          <p data-testid="auth-error" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-            {error}
-          </p>
+          <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2.5">
+            <svg className="mt-0.5 h-4 w-4 shrink-0 text-red-500" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
+            </svg>
+            <p data-testid="auth-error" className="text-sm text-red-700">{error}</p>
+          </div>
         ) : null}
-        <Button data-testid="auth-submit" type="submit" disabled={loading} className="w-full">
+        <Button data-testid="auth-submit" type="submit" disabled={loading} className="w-full" size="lg">
           {loading ? (
             <span className="inline-flex items-center gap-2">
               <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" aria-hidden="true" />

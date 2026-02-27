@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { BRAND } from "../../lib/brand";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
 
 export function AuthMarketingLayout({
   title,
@@ -18,61 +17,114 @@ export function AuthMarketingLayout({
   children: React.ReactNode;
 }) {
   return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-100 via-white to-sky-50 px-4 py-6 sm:py-10">
-      <div className="mx-auto grid w-full max-w-6xl gap-5 md:grid-cols-2 md:gap-8">
-        <section className="relative overflow-hidden rounded-2xl border border-slate-700/50 bg-slate-950 px-6 py-7 text-white sm:px-8 sm:py-10">
-          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(148,163,184,0.12)_1px,transparent_1px),linear-gradient(to_bottom,rgba(148,163,184,0.1)_1px,transparent_1px)] bg-[size:26px_26px]" />
-          <div className="pointer-events-none absolute -left-16 -top-12 h-56 w-56 rounded-full bg-cyan-400/20 blur-3xl" />
-          <div className="pointer-events-none absolute -bottom-20 -right-16 h-64 w-64 rounded-full bg-indigo-400/20 blur-3xl" />
-          <div className="relative">
-            <div className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-white/20 bg-white/10 text-sm font-semibold">
-              qS
-            </div>
-            <h1 className="mt-5 text-3xl font-semibold tracking-tight sm:text-4xl">{BRAND.name}</h1>
-            <p className="mt-3 max-w-md text-sm text-slate-200">{BRAND.tagline}</p>
+    <main className="flex min-h-screen bg-slate-50">
+      {/* Left panel — branding */}
+      <div className="relative hidden flex-col justify-between overflow-hidden bg-slate-950 p-10 lg:flex lg:w-[480px] lg:shrink-0">
+        <div className="pointer-events-none absolute -right-24 -top-24 h-96 w-96 rounded-full bg-indigo-600/20 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-32 -left-16 h-80 w-80 rounded-full bg-indigo-500/10 blur-3xl" />
 
-            <ul className="mt-8 space-y-3 text-sm text-slate-100">
-              <li>Plan shifts in minutes</li>
-              <li>Multi-location ready</li>
-              <li>Audit-safe approvals and invites</li>
-            </ul>
+        {/* Logo */}
+        <div className="relative z-10 flex items-center gap-2.5">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600">
+            <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">
+              <path
+                d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"
+                stroke="white"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                fill="none"
+              />
+            </svg>
+          </div>
+          <span className="text-base font-bold tracking-tight text-white">{BRAND.name}</span>
+        </div>
 
-            <div className="mt-12 text-xs text-slate-300">
-              <Link href="#" className="underline decoration-slate-400 underline-offset-4">
-                Security & privacy-ready
+        {/* Hero */}
+        <div className="relative z-10">
+          <h2 className="text-3xl font-bold leading-tight tracking-tight text-white">
+            {BRAND.tagline}
+          </h2>
+
+          <ul className="mt-8 space-y-4">
+            {[
+              { icon: "⚡", text: "Plan shifts in minutes, not hours" },
+              { icon: "🌍", text: "Multi-location & multi-timezone ready" },
+              { icon: "🔒", text: "Audit-safe job lifecycle & permissions" },
+            ].map((item) => (
+              <li key={item.text} className="flex items-start gap-3">
+                <span className="mt-0.5 text-base">{item.icon}</span>
+                <span className="text-sm text-slate-300">{item.text}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {/* Tagline */}
+        <div className="relative z-10 rounded-xl border border-slate-800 bg-slate-900/60 px-4 py-3">
+          <p className="text-xs leading-relaxed text-slate-400">
+            Security and privacy first. Tenant boundaries and permission checks are enforced across the
+            platform.
+          </p>
+        </div>
+      </div>
+
+      {/* Right panel — form */}
+      <div className="flex flex-1 flex-col items-center justify-center px-6 py-12">
+        {/* Mobile logo */}
+        <div className="mb-8 flex items-center gap-2 lg:hidden">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600">
+            <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">
+              <path
+                d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"
+                stroke="white"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                fill="none"
+              />
+            </svg>
+          </div>
+          <span className="text-base font-bold tracking-tight text-slate-900">{BRAND.name}</span>
+        </div>
+
+        <div className="w-full max-w-sm">
+          <div className="mb-7">
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900">{title}</h1>
+            <p className="mt-1.5 text-sm text-slate-500">{description}</p>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-[0_2px_8px_0_rgb(0_0_0/0.06)]">
+            <div className="space-y-4">{children}</div>
+
+            <div className="mt-5 flex items-center justify-between border-t border-slate-100 pt-4 text-xs">
+              {forgotPasswordHref ? (
+                <Link
+                  href={forgotPasswordHref}
+                  className="text-slate-500 transition-colors hover:text-indigo-600 hover:underline underline-offset-4"
+                >
+                  Forgot password?
+                </Link>
+              ) : forgotPasswordDisabled ? (
+                <span className="cursor-not-allowed text-slate-400" aria-disabled="true" title="Coming soon">
+                  Forgot password?
+                </span>
+              ) : (
+                <span />
+              )}
+              <Link
+                href="#"
+                className="text-slate-500 transition-colors hover:text-indigo-600 hover:underline underline-offset-4"
+              >
+                Need help?
               </Link>
             </div>
           </div>
-        </section>
 
-        <section className="flex items-stretch md:items-center">
-          <Card className="w-full rounded-2xl border-slate-200/90 shadow-lg shadow-slate-200/60">
-            <CardHeader>
-              <CardTitle className="text-2xl tracking-tight">{title}</CardTitle>
-              <CardDescription className="text-sm text-slate-600">{description}</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-5">
-              {children}
-              <div className="flex items-center justify-between border-t border-slate-200 pt-3 text-xs text-slate-600">
-                {forgotPasswordHref ? (
-                  <Link href={forgotPasswordHref} className="underline decoration-slate-300 underline-offset-4">
-                    Forgot password?
-                  </Link>
-                ) : forgotPasswordDisabled ? (
-                  <span className="cursor-not-allowed text-slate-400" aria-disabled="true" title="TODO: forgot password route">
-                    Forgot password?
-                  </span>
-                ) : (
-                  <span />
-                )}
-                <Link href="#" className="underline decoration-slate-300 underline-offset-4">
-                  Need help?
-                </Link>
-              </div>
-              {footer ? <p className="text-sm text-slate-600">{footer}</p> : null}
-            </CardContent>
-          </Card>
-        </section>
+          {footer ? (
+            <p className="mt-5 text-center text-sm text-slate-500">{footer}</p>
+          ) : null}
+        </div>
       </div>
     </main>
   );
