@@ -1,4 +1,4 @@
-# gShift Tenant-Safe SaaS Foundation Execution Prompt
+# qShift Tenant-Safe SaaS Foundation Execution Prompt
 
 ## Role
 Act as Senior Fullstack Architect + Developer + QA (implementation-first).
