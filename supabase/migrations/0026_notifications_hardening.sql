@@ -15,14 +15,13 @@ as $$
   ), entity as (
     select
       nullif(coalesce(data->>'job_post_id', data->>'job_id'), '') as job_post_id,
-      nullif(data->>'assignment_id', '') as assignment_id,
-      nullif(data->>'application_id', '') as application_id
+      nullif(data->>'assignment_id', '') as assignment_id
     from payload
   )
   select
     case
-      when coalesce(job_post_id, assignment_id, application_id) is null then null
-      else concat_ws('|', coalesce(p_type, ''), coalesce(job_post_id, ''), coalesce(assignment_id, ''), coalesce(application_id, ''))
+      when coalesce(job_post_id, assignment_id) is null then null
+      else concat_ws('|', coalesce(p_type, ''), coalesce(job_post_id, ''), coalesce(assignment_id, ''))
     end
   from entity;
 $$;

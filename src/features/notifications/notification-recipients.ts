@@ -37,11 +37,10 @@ function getString(payload: NotificationPayload, key: string): string | null {
 export function buildNotificationDedupeKey(type: string, payload: NotificationPayload): string | null {
   const jobPostId = getString(payload, "job_post_id") ?? getString(payload, "job_id");
   const assignmentId = getString(payload, "assignment_id");
-  const applicationId = getString(payload, "application_id");
-  if (!jobPostId && !assignmentId && !applicationId) {
+  if (!jobPostId && !assignmentId) {
     return null;
   }
-  return `${type}|${jobPostId ?? ""}|${assignmentId ?? ""}|${applicationId ?? ""}`;
+  return `${type}|${jobPostId ?? ""}|${assignmentId ?? ""}`;
 }
 
 export function shouldSkipNotificationAsDuplicate(

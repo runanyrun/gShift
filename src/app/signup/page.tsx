@@ -4,7 +4,8 @@ import { FormEvent, useState } from "react";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
-import { AuthCardLayout, AuthFooterLink } from "../../components/auth/AuthCardLayout";
+import { AuthFooterLink } from "../../components/auth/AuthCardLayout";
+import { AuthMarketingLayout } from "../../components/auth/AuthMarketingLayout";
 
 interface SignupResponse {
   authUserId: string;
@@ -63,7 +64,7 @@ export default function SignupPage() {
   }
 
   return (
-    <AuthCardLayout
+    <AuthMarketingLayout
       title="Create account"
       description="Create your company workspace and start setup in minutes."
       footer={<AuthFooterLink href="/login" label="Sign in" text="Already have an account?" />}
@@ -115,6 +116,6 @@ export default function SignupPage() {
           {loading ? "Creating..." : "Create account"}
         </Button>
       </form>
-    </AuthCardLayout>
+    </AuthMarketingLayout>
   );
 }

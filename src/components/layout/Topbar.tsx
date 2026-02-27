@@ -2,8 +2,8 @@
 
 import { useMemo } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { canManage as canManagePermissions } from "../../core/auth/permissions";
 import { useMe } from "../../core/auth/useMe";
+import { getNavItemsForPermissions, resolvePageTitleFromPath } from "../../features/navigation/nav-model";
 import { signOut } from "../../lib/auth-client";
 import { Button } from "../ui/button";
 import {
@@ -15,22 +15,12 @@ import {
 } from "../ui/dropdown-menu";
 import { Separator } from "../ui/separator";
 import { NotificationsBell } from "../notifications/NotificationsBell";
-import { getNavItems } from "./SidebarNav";
-
-function titleFromPath(pathname: string, navItems: ReturnType<typeof getNavItems>): string {
-  const active = navItems.find((item) => pathname === item.href || pathname.startsWith(`${item.href}/`));
-  if (active) {
-    return active.label;
-  }
-  const segment = pathname.split("/").filter(Boolean)[0] ?? "dashboard";
-  return segment.charAt(0).toUpperCase() + segment.slice(1);
-}
 
 export function Topbar() {
   const router = useRouter();
   const pathname = usePathname();
   const { data: me } = useMe();
-  const navItems = getNavItems(canManagePermissions(me?.permissions));
+  const navItems = getNavItemsForPermissions(me?.permissions);
 
   const userLabel = useMemo(() => {
     const name = me?.user?.name?.trim();
@@ -70,7 +60,7 @@ export function Topbar() {
             </DropdownMenuContent>
           </DropdownMenu>
           <div>
-            <p className="text-sm font-semibold text-slate-900">{titleFromPath(pathname, navItems)}</p>
+            <p className="text-sm font-semibold text-slate-900">{resolvePageTitleFromPath(pathname, me?.permissions)}</p>
             <p className="text-xs text-slate-500">{me?.tenant?.name ?? "Workspace"}</p>
           </div>
         </div>

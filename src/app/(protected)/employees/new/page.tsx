@@ -12,6 +12,7 @@ import {
 import { PageHeader } from "../../../../components/layout/PageHeader";
 import { Section } from "../../../../components/ui/section";
 import { Skeleton } from "../../../../components/ui/skeleton";
+import { Breadcrumbs } from "../../../../components/ui/breadcrumbs";
 import { EmployeeForm } from "../../../../shared/components/employee-form";
 
 export default function EmployeeCreatePage() {
@@ -50,6 +51,14 @@ export default function EmployeeCreatePage() {
 
   return (
     <section className="space-y-6">
+      <Breadcrumbs
+        items={[
+          { label: "Employees", href: "/employees" },
+          { label: "New employee" },
+        ]}
+        backHref="/employees"
+        backLabel="Back to employees"
+      />
       <PageHeader
         title="New employee"
         description="Primary task: create a single employee profile with clear required fields."

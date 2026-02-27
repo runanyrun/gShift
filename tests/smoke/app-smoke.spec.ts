@@ -16,7 +16,7 @@ test.describe("app smoke", () => {
   });
 
   test("auth login loads dashboard", async ({ page }) => {
-    await expect(page.getByText("Dashboard")).toBeVisible();
+    await expect(page.getByTestId("nav-dashboard")).toBeVisible();
   });
 
   test("company settings loads without schema-cache rpc error", async ({ page }) => {
@@ -27,18 +27,18 @@ test.describe("app smoke", () => {
 
   test("schedule page renders week grid", async ({ page }) => {
     await page.goto("/schedule");
-    await expect(page.getByText("Schedule")).toBeVisible();
+    await expect(page.getByTestId("nav-schedule")).toBeVisible();
     await expect(page.locator("[data-testid^='week-day-']").first()).toBeVisible();
   });
 
   test("manager jobs page renders", async ({ page }) => {
     await page.goto("/manager/jobs");
-    await expect(page.getByText("Jobs")).toBeVisible();
+    await expect(page.getByTestId("nav-jobs")).toBeVisible();
   });
 
   test("worker jobs page renders", async ({ page }) => {
     await page.goto("/jobs");
-    await expect(page.getByText("Find Jobs")).toBeVisible();
+    await expect(page.getByTestId("nav-jobs")).toBeVisible();
   });
 
   test("notifications page renders", async ({ page }) => {
@@ -49,16 +49,21 @@ test.describe("app smoke", () => {
   test("topbar bell dropdown opens", async ({ page }) => {
     await page.goto("/dashboard");
     await page.getByRole("button", { name: "Notifications" }).click();
-    await expect(page.getByText("Open notifications page")).toBeVisible();
+    await expect(page.getByTestId("btn-mark-all-read")).toBeVisible();
   });
 
   test("manager job detail applicants tab renders when a job exists", async ({ page }) => {
     await page.goto("/manager/jobs");
-    await expect(page.getByText("Jobs")).toBeVisible();
+    await expect(page.getByTestId("nav-jobs")).toBeVisible();
     const openButtons = page.getByRole("link", { name: "Open" });
     const count = await openButtons.count();
     test.skip(count === 0, "No manager jobs available to open detail page.");
     await openButtons.first().click();
     await expect(page.getByRole("button", { name: "Applicants" })).toBeVisible();
+  });
+
+  test("auth page renders", async ({ page }) => {
+    await page.goto("/login");
+    await expect(page.getByText("Sign in")).toBeVisible();
   });
 });

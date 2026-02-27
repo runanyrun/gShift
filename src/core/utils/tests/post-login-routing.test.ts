@@ -30,18 +30,18 @@ function main() {
   pass("employee=null routes to /onboarding");
 
   const permissionsUnknownRoute = resolvePostLoginRoute(buildMe({ permissions: null }));
-  if (permissionsUnknownRoute !== "/my") {
-    fail(`Expected permissions=null route to /my, got ${permissionsUnknownRoute}`);
+  if (permissionsUnknownRoute !== "/jobs") {
+    fail(`Expected permissions=null route to /jobs, got ${permissionsUnknownRoute}`);
   }
-  pass("permissions=null routes to safe default /my.");
+  pass("permissions=null routes to safe default /jobs.");
 
   const employeeRoute = resolvePostLoginRoute(
     buildMe({ permissions: ["report_management", "timesheet_management"] }),
   );
-  if (employeeRoute !== "/my") {
-    fail(`Expected non-manager route to /my, got ${employeeRoute}`);
+  if (employeeRoute !== "/jobs") {
+    fail(`Expected non-manager route to /jobs, got ${employeeRoute}`);
   }
-  pass("non-manager routes to /my");
+  pass("non-manager routes to /jobs");
 
   const managerRoute = resolvePostLoginRoute(
     buildMe({ permissions: ["management", "report_management"] }),

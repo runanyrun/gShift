@@ -170,6 +170,7 @@ export function WorkerJobsPage() {
                       </Link>
                       <Button
                         type="button"
+                        data-testid="btn-apply-job"
                         onClick={() => void applyToJob(job.id)}
                         disabled={Boolean(job.has_applied || applying[job.id])}
                       >

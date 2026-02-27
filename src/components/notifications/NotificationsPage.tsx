@@ -134,7 +134,7 @@ export function NotificationsPage() {
         title="Notifications"
         description="Track application, invite, and lifecycle activity in one place."
         actions={(
-          <Button type="button" variant="outline" onClick={() => void markAllRead()}>
+          <Button type="button" variant="outline" data-testid="btn-mark-all-read" onClick={() => void markAllRead()}>
             Mark all as read
           </Button>
         )}
