@@ -141,8 +141,6 @@ export function MeProvider({ children }: { children: ReactNode }) {
 
 export function useMe(): UseMeState {
   const context = useContext(MeContext);
-  if (context) {
-    return context;
-  }
-  return useMeState();
+  const fallbackState = useMeState();
+  return context ?? fallbackState;
 }

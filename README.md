@@ -66,6 +66,48 @@ Flow:
 - `src/features/user/services/user.service.ts`
   - User profile reads/writes + onboarding RPC bridge.
 
+## AppShell Conventions
+
+- Canonical protected shell lives in:
+  - `src/app/(protected)/layout.tsx`
+  - `src/components/layout/SidebarNav.tsx`
+  - `src/components/layout/Topbar.tsx`
+  - `src/components/layout/PageShell.tsx`
+  - `src/components/layout/PageHeader.tsx`
+- Do not create alternate shell components in other folders. All authenticated product pages must render through `(protected)/layout.tsx`.
+- Navigation model source of truth is `NAV_ITEMS` in `SidebarNav.tsx`.
+- UI design contract source of truth:
+  - `docs/ui-contract.md`
+
+### How To Build A New Protected Page
+
+1. Create the route in `src/app/(protected)/.../page.tsx`.
+2. Start page content with `PageHeader` and keep body inside the shared `PageShell` from the protected layout.
+3. Reuse existing shadcn UI components (`Card`, `Tabs`, `Dialog`, `Table`, `EmptyState`) rather than custom one-off styles.
+4. Any tenant/company data fetch must go through existing authenticated APIs/RPC helpers.
+
+## Package Manager + CI Commands
+
+- Canonical package manager is `npm` for this repository (lockfile + scripts are maintained for npm in CI).
+- If your local workflow uses pnpm, keep compatibility by executing npm scripts via `pnpm run <script>`.
+- CI-ready quality gate commands:
+  - `npm run typecheck`
+  - `npm run lint`
+  - `npm run build`
+  - Optional combined gate: `npm run ci:check`
+
+## UI Smoke (Playwright)
+
+- Smoke tests are under `tests/smoke`.
+- Required env vars:
+  - `E2E_TEST_EMAIL`
+  - `E2E_TEST_PASSWORD`
+- Optional env vars:
+  - `E2E_BASE_URL` (if omitted, local server starts on `E2E_PORT` or `3200`)
+  - `E2E_PORT`
+- Run:
+  - `npm run test:smoke:e2e`
+
 ## Session & Auth Utilities
 
 - `src/core/auth/session.ts`

@@ -5,9 +5,12 @@ import { useRouter } from "next/navigation";
 import { DEFAULT_FORMAT, makeFormatters, resolveFormatConfig } from "../../lib/format";
 import { LimitedModeAlert } from "../common/LimitedModeAlert";
 import { Button } from "../ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
+import { EmptyState } from "../ui/empty-state";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Select } from "../ui/select";
+import { PageHeader } from "../layout/PageHeader";
 
 type ApiResponse<T> = { ok: boolean; data?: T; error?: string };
 
@@ -312,32 +315,53 @@ export function OnboardingWizard() {
   }
 
   return (
-    <section className="space-y-4">
-      <header className="space-y-2">
-        <h1 className="text-2xl font-semibold text-slate-900">5 dakikada kurulum</h1>
-        <div className="grid grid-cols-5 gap-2">
-          {STEPS.map((label, index) => (
-            <div
-              key={label}
-              className={`rounded-md border px-3 py-2 text-xs font-medium ${
-                index === step
-                  ? "border-slate-900 bg-slate-900 text-white"
-                  : index < step
-                    ? "border-emerald-300 bg-emerald-50 text-emerald-700"
-                    : "border-slate-200 bg-white text-slate-600"
-              }`}
-            >
-              {index + 1}. {label}
-            </div>
-          ))}
-        </div>
-      </header>
+    <section className="space-y-6">
+      <PageHeader
+        title="5-minute setup"
+        description="Finish company setup in a guided flow: company defaults, locations, roles, employees, then a demo schedule."
+      />
+
+      <Card>
+        <CardContent className="p-4">
+          <div className="grid grid-cols-1 gap-2 md:grid-cols-5">
+            {STEPS.map((label, index) => (
+              <button
+                key={label}
+                type="button"
+                onClick={() => setStep(index)}
+                disabled={loading || index > step}
+                className={`rounded-md border px-3 py-2 text-left text-xs font-medium transition-colors ${
+                  index === step
+                    ? "border-slate-900 bg-slate-900 text-white"
+                    : index < step
+                      ? "border-emerald-300 bg-emerald-50 text-emerald-700"
+                      : "border-slate-200 bg-white text-slate-600"
+                }`}
+              >
+                <span className="block text-[10px] uppercase tracking-wide opacity-70">Step {index + 1}</span>
+                <span>{label}</span>
+              </button>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
       {error ? <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p> : null}
 
-      <div className="rounded-lg border border-slate-200 bg-white p-4">
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle>{STEPS[step]}</CardTitle>
+          <CardDescription>
+            {step === 0 ? "Set company-level locale, timezone, and default shift preferences." : null}
+            {step === 1 ? "Add at least one location. Each location can have its own timezone." : null}
+            {step === 2 ? "Define roles and optional default wages for quick shift creation." : null}
+            {step === 3 ? "Create employees and assign location + role." : null}
+            {step === 4 ? "Generate an optional demo week so your schedule is ready immediately." : null}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
         {step === 0 ? (
-          <div className="space-y-3">
+          <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="company-name">Company name</Label>
               <Input
@@ -348,7 +372,7 @@ export function OnboardingWizard() {
               />
             </div>
 
-            <div className="grid gap-2 md:grid-cols-2">
+            <div className="space-y-3">
               <div>
                 <Label htmlFor="company-locale">Locale</Label>
                 <Select id="company-locale" value={companyLocale} onChange={(event) => setCompanyLocale(event.target.value)}>
@@ -377,7 +401,7 @@ export function OnboardingWizard() {
               />
             </div>
 
-            <div className="grid gap-2 md:grid-cols-3">
+            <div className="space-y-3">
               <div>
                 <Label htmlFor="company-week-starts-on">Week starts on</Label>
                 <Select
@@ -412,13 +436,14 @@ export function OnboardingWizard() {
             </div>
 
             {companyWarning ? <LimitedModeAlert warning={companyWarning} /> : null}
+            {companySaved ? <p className="text-sm text-emerald-700">Company defaults saved.</p> : null}
           </div>
         ) : null}
 
         {step === 1 ? (
           <div className="space-y-3">
             {locations.map((location, index) => (
-              <div key={`location-${index}`} className="grid gap-2 md:grid-cols-2">
+              <div key={`location-${index}`} className="space-y-2 rounded-md border border-slate-200 p-3">
                 <div>
                   <Label htmlFor={`location-name-${index}`}>Location name</Label>
                   <Input
@@ -442,13 +467,14 @@ export function OnboardingWizard() {
             <Button type="button" variant="outline" onClick={addLocation}>
               Add location
             </Button>
+            {locationsSaved ? <p className="text-sm text-emerald-700">Locations saved.</p> : null}
           </div>
         ) : null}
 
         {step === 2 ? (
           <div className="space-y-3">
             {roles.map((role, index) => (
-              <div key={`role-${index}`} className="grid gap-2 md:grid-cols-2">
+              <div key={`role-${index}`} className="space-y-2 rounded-md border border-slate-200 p-3">
                 <div>
                   <Label htmlFor={`role-name-${index}`}>Role name</Label>
                   <Input
@@ -475,13 +501,20 @@ export function OnboardingWizard() {
             <Button type="button" variant="outline" onClick={addRole}>
               Add role
             </Button>
+            {rolesSaved ? <p className="text-sm text-emerald-700">Roles saved.</p> : null}
           </div>
         ) : null}
 
         {step === 3 ? (
           <div className="space-y-3">
+            {createdLocations.length === 0 || createdRoles.length === 0 ? (
+              <EmptyState
+                title="Complete locations and roles first"
+                description="Employees need both a location and role assignment. Go back to previous steps and save them first."
+              />
+            ) : null}
             {employees.map((employee, index) => (
-              <div key={`employee-${index}`} className="grid gap-2 md:grid-cols-4">
+              <div key={`employee-${index}`} className="space-y-2 rounded-md border border-slate-200 p-3">
                 <div>
                   <Label htmlFor={`employee-name-${index}`}>Full name</Label>
                   <Input
@@ -541,12 +574,13 @@ export function OnboardingWizard() {
             <Button type="button" variant="outline" onClick={addEmployee}>
               Add employee
             </Button>
+            {employeesSaved ? <p className="text-sm text-emerald-700">Employees saved.</p> : null}
           </div>
         ) : null}
 
         {step === 4 ? (
           <div className="space-y-3">
-            <div className="grid gap-2 md:grid-cols-2">
+            <div className="space-y-2">
               <div>
                 <Label htmlFor="schedule-location">Location</Label>
                 <Select
@@ -579,7 +613,8 @@ export function OnboardingWizard() {
             </Button>
           </div>
         ) : null}
-      </div>
+        </CardContent>
+      </Card>
 
       <footer className="flex items-center justify-between">
         <Button type="button" variant="outline" onClick={() => setStep((current) => Math.max(0, current - 1))} disabled={step === 0 || loading}>
