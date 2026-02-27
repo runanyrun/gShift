@@ -46,6 +46,12 @@ test.describe("app smoke", () => {
     await expect(page.getByText("Notifications")).toBeVisible();
   });
 
+  test("topbar bell dropdown opens", async ({ page }) => {
+    await page.goto("/dashboard");
+    await page.getByRole("button", { name: "Notifications" }).click();
+    await expect(page.getByText("Open notifications page")).toBeVisible();
+  });
+
   test("manager job detail applicants tab renders when a job exists", async ({ page }) => {
     await page.goto("/manager/jobs");
     await expect(page.getByText("Jobs")).toBeVisible();
