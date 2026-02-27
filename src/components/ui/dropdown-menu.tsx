@@ -23,12 +23,23 @@ export function DropdownMenu({ children }: { children: React.ReactNode }) {
 export function DropdownMenuTrigger({
   children,
   className = "",
+  onClick,
   ...props
 }: React.ButtonHTMLAttributes<HTMLButtonElement>) {
   const { open, setOpen } = useDropdownContext();
 
   return (
-    <button type="button" className={className} onClick={() => setOpen(!open)} {...props}>
+    <button
+      type="button"
+      className={className}
+      onClick={(event) => {
+        setOpen(!open);
+        if (typeof onClick === "function") {
+          onClick(event);
+        }
+      }}
+      {...props}
+    >
       {children}
     </button>
   );
@@ -64,6 +75,7 @@ export function DropdownMenuContent({
 export function DropdownMenuItem({
   className = "",
   onSelect,
+  onClick,
   ...props
 }: React.ButtonHTMLAttributes<HTMLButtonElement> & { onSelect?: () => void }) {
   const { setOpen } = useDropdownContext();
@@ -72,8 +84,12 @@ export function DropdownMenuItem({
       type="button"
       className={`flex w-full items-center rounded-sm px-2 py-1.5 text-sm hover:bg-slate-100 ${className}`.trim()}
       onClick={(event) => {
-        props.onClick?.(event);
-        onSelect?.();
+        if (typeof onClick === "function") {
+          onClick(event);
+        }
+        if (typeof onSelect === "function") {
+          onSelect();
+        }
         setOpen(false);
       }}
       {...props}
