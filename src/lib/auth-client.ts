@@ -49,6 +49,10 @@ export async function signOut() {
         : body?.error?.message ?? "Failed to sign out.";
     throw new Error(message);
   }
+
+  // Ensure browser-side cached session is removed as well.
+  const supabase = getSupabaseBrowserClient();
+  await supabase.auth.signOut();
 }
 
 export async function getSession() {

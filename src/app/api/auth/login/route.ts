@@ -20,7 +20,6 @@ function hasAuthCookies(response: NextResponse): boolean {
 
   return response.cookies.getAll().length > 0;
 }
-
 export async function POST(request: NextRequest) {
   let body: LoginBody;
   try {
@@ -62,7 +61,6 @@ export async function POST(request: NextRequest) {
         NextResponse.json({ ok: false, error: { message: "Failed to establish auth cookie." } }, { status: 500 }),
       );
     }
-
     return applyResponseCookies(
       authResponse,
       NextResponse.json(
@@ -70,6 +68,7 @@ export async function POST(request: NextRequest) {
           ok: true,
           data: {
             userId: data.user.id,
+            accessToken: data.session.access_token,
             accessToken: data.session.access_token,
           },
         },
