@@ -33,17 +33,22 @@ test.describe("app smoke", () => {
 
   test("manager jobs page renders", async ({ page }) => {
     await page.goto("/manager/jobs");
-    await expect(page.getByText("Manager Jobs")).toBeVisible();
+    await expect(page.getByText("Jobs")).toBeVisible();
   });
 
   test("worker jobs page renders", async ({ page }) => {
     await page.goto("/jobs");
-    await expect(page.getByText("Jobs")).toBeVisible();
+    await expect(page.getByText("Find Jobs")).toBeVisible();
+  });
+
+  test("notifications page renders", async ({ page }) => {
+    await page.goto("/notifications");
+    await expect(page.getByText("Notifications")).toBeVisible();
   });
 
   test("manager job detail applicants tab renders when a job exists", async ({ page }) => {
     await page.goto("/manager/jobs");
-    await expect(page.getByText("Manager Jobs")).toBeVisible();
+    await expect(page.getByText("Jobs")).toBeVisible();
     const openButtons = page.getByRole("link", { name: "Open" });
     const count = await openButtons.count();
     test.skip(count === 0, "No manager jobs available to open detail page.");

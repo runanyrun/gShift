@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createBrowserSupabaseClient } from "../../core/db/supabase";
 import { canManage as canManagePermissions } from "../../core/auth/permissions";
 import { useMe } from "../../core/auth/useMe";
@@ -83,18 +83,21 @@ export function SettingsDictionaryPage({ title, endpoint }: SettingsDictionaryPa
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [endpoint]);
 
-  async function onCreate(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function onCreate() {
     setError(null);
     if (!canManage) {
       setError("You do not have permission to perform this action.");
+      return;
+    }
+    if (!name.trim()) {
+      setError(`${singularTitle} name is required.`);
       return;
     }
     setSaving(true);
     try {
       const response = await authorizedFetch(endpoint, {
         method: "POST",
-        body: JSON.stringify({ name, isActive: true }),
+        body: JSON.stringify({ name: name.trim(), isActive: true }),
       });
       const body = (await response.json()) as { ok: boolean; error?: string };
       if (!response.ok || !body.ok) {
@@ -158,33 +161,7 @@ export function SettingsDictionaryPage({ title, endpoint }: SettingsDictionaryPa
 
       {error ? <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p> : null}
 
-      {canManage ? (
-        <Section title={`Add ${singularTitle}`} description={`Create a new ${singularTitle.toLowerCase()} and make it active instantly.`}>
-          <Card>
-            <CardContent className="p-4">
-              <form onSubmit={onCreate} className="space-y-3">
-                <div className="space-y-1">
-                  <Label htmlFor={`${titleSlug}-name`}>Name</Label>
-                  <Input
-                    id={`${titleSlug}-name`}
-                    value={name}
-                    onChange={(event) => setName(event.target.value)}
-                    placeholder={`New ${singularTitle.toLowerCase()} name`}
-                    required
-                  />
-                </div>
-                <div>
-                  <Button type="submit" disabled={saving}>
-                    {saving ? "Saving..." : `Create ${singularTitle}`}
-                  </Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
-        </Section>
-      ) : null}
-
-      <Section title={`Current ${title}`} description="Review active items and archive what you no longer use.">
+      <Section title={`${title} directory`} description="Primary task: maintain active options and create new values inline.">
         <Card>
           <CardHeader className="pb-0">
             <CardTitle className="text-base">Directory</CardTitle>
@@ -194,6 +171,25 @@ export function SettingsDictionaryPage({ title, endpoint }: SettingsDictionaryPa
               searchValue={search}
               onSearchChange={setSearch}
               searchPlaceholder={`Search ${title.toLowerCase()}`}
+              actions={canManage ? (
+                <>
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor={`${titleSlug}-name`} className="sr-only">
+                      {singularTitle} name
+                    </Label>
+                    <Input
+                      id={`${titleSlug}-name`}
+                      value={name}
+                      onChange={(event) => setName(event.target.value)}
+                      placeholder={`New ${singularTitle.toLowerCase()} name`}
+                      className="w-full md:w-56"
+                    />
+                  </div>
+                  <Button type="button" disabled={saving} onClick={() => void onCreate()}>
+                    {saving ? "Saving..." : `Add ${singularTitle}`}
+                  </Button>
+                </>
+              ) : null}
             />
             {loading ? (
               <div className="space-y-2 px-4 py-4">

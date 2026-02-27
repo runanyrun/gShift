@@ -15,6 +15,19 @@ This contract is the source of truth for protected product UI in gShift.
   - one primary task block
   - details in progressive disclosure (`Tabs`, `Sheet`, `Dialog`)
 
+## Page IA Contract
+
+- Every page follows this order:
+  - `PageHeader` (title + one-sentence description + right-side actions)
+  - optional KPI strip (max 4 cards)
+  - one primary task section (`Section` + one main card/table/form)
+  - details in `Tabs`, `Sheet`, or `Accordion`
+- Do not render two primary task surfaces at the same time.
+  - If a page needs list + create, split them into tabs.
+- Keep dense detail out of list pages.
+  - use `Sheet` or dedicated detail route for heavy edit flows.
+- Use English microcopy consistently across labels, helper text, empty states, and errors.
+
 ## Spacing Contract
 
 - Page vertical rhythm: `space-y-6` by default.
@@ -60,6 +73,8 @@ Prefer existing shadcn components and these shared wrappers:
 
 - Primary navigation labels:
   - Dashboard
+  - Jobs (manager)
+  - Find Jobs (worker)
   - Schedule
   - Reports
   - Employees

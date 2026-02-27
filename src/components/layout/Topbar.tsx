@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { canManage as canManagePermissions } from "../../core/auth/permissions";
 import { useMe } from "../../core/auth/useMe";
 import { signOut } from "../../lib/auth-client";
 import { Button } from "../ui/button";
@@ -13,10 +14,11 @@ import {
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import { Separator } from "../ui/separator";
-import { NAV_ITEMS } from "./SidebarNav";
+import { NotificationsBell } from "../notifications/NotificationsBell";
+import { getNavItems } from "./SidebarNav";
 
-function titleFromPath(pathname: string): string {
-  const active = NAV_ITEMS.find((item) => pathname === item.href || pathname.startsWith(`${item.href}/`));
+function titleFromPath(pathname: string, navItems: ReturnType<typeof getNavItems>): string {
+  const active = navItems.find((item) => pathname === item.href || pathname.startsWith(`${item.href}/`));
   if (active) {
     return active.label;
   }
@@ -28,6 +30,7 @@ export function Topbar() {
   const router = useRouter();
   const pathname = usePathname();
   const { data: me } = useMe();
+  const navItems = getNavItems(canManagePermissions(me?.permissions));
 
   const userLabel = useMemo(() => {
     const name = me?.user?.name?.trim();
@@ -59,7 +62,7 @@ export function Topbar() {
               Menu
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="w-56">
-              {NAV_ITEMS.map((item) => (
+              {navItems.map((item) => (
                 <DropdownMenuItem key={item.href} onSelect={() => router.push(item.href)}>
                   {item.label}
                 </DropdownMenuItem>
@@ -67,7 +70,7 @@ export function Topbar() {
             </DropdownMenuContent>
           </DropdownMenu>
           <div>
-            <p className="text-sm font-semibold text-slate-900">{titleFromPath(pathname)}</p>
+            <p className="text-sm font-semibold text-slate-900">{titleFromPath(pathname, navItems)}</p>
             <p className="text-xs text-slate-500">{me?.tenant?.name ?? "Workspace"}</p>
           </div>
         </div>
@@ -76,6 +79,7 @@ export function Topbar() {
           <Button type="button" variant="outline" className="hidden sm:inline-flex" onClick={() => router.push("/schedule")}>
             Quick add shift
           </Button>
+          <NotificationsBell />
           <Separator orientation="vertical" className="hidden h-6 sm:block" />
 
           <DropdownMenu>
