@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useMe } from "../../core/auth/useMe";
 import { getNavItemsForPermissions } from "../../features/navigation/nav-model";
+import { BRAND } from "../../lib/brand";
 import {
   LayoutDashboard,
   Calendar,
@@ -48,7 +49,7 @@ export function SidebarNav() {
               <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
             </svg>
           </div>
-          <span className="text-sm font-bold tracking-tight text-white">gShift</span>
+          <span className="text-sm font-bold tracking-tight text-white">{BRAND.name}</span>
         </div>
 
         {/* Navigation */}

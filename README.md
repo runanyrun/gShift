@@ -1,4 +1,4 @@
-# gShift SaaS Core Setup
+# qShift SaaS Core Setup
 
 ## Environment Variables
 

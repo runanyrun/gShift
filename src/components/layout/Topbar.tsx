@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useMe } from "../../core/auth/useMe";
 import { getNavItemsForPermissions, resolvePageTitleFromPath } from "../../features/navigation/nav-model";
+import { BRAND } from "../../lib/brand";
 import { signOut } from "../../lib/auth-client";
 import { Button } from "../ui/button";
 import {
@@ -72,6 +73,7 @@ export function Topbar() {
           </DropdownMenu>
 
           <div className="hidden md:block">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400">{BRAND.name}</p>
             <h1 className="text-sm font-semibold text-slate-900">
               {resolvePageTitleFromPath(pathname, me?.permissions)}
             </h1>

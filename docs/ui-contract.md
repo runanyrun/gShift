@@ -1,6 +1,6 @@
 # UI Contract (v1)
 
-This contract is the source of truth for protected product UI in gShift.
+This contract is the source of truth for protected product UI in qShift.
 
 ## Layout Contract
 

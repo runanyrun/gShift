@@ -1,14 +1,19 @@
 import Link from "next/link";
+import { BRAND } from "../../lib/brand";
 
 export function AuthMarketingLayout({
   title,
   description,
   footer,
+  forgotPasswordHref,
+  forgotPasswordDisabled,
   children,
 }: {
   title: string;
   description: string;
   footer?: React.ReactNode;
+  forgotPasswordHref?: string;
+  forgotPasswordDisabled?: boolean;
   children: React.ReactNode;
 }) {
   return (
@@ -32,14 +37,13 @@ export function AuthMarketingLayout({
               />
             </svg>
           </div>
-          <span className="text-base font-bold tracking-tight text-white">gShift</span>
+          <span className="text-base font-bold tracking-tight text-white">{BRAND.name}</span>
         </div>
 
         {/* Hero */}
         <div className="relative z-10">
           <h2 className="text-3xl font-bold leading-tight tracking-tight text-white">
-            Workforce scheduling<br />and marketplace,{" "}
-            <span className="text-indigo-400">simplified.</span>
+            {BRAND.tagline}
           </h2>
 
           <ul className="mt-8 space-y-4">
@@ -81,7 +85,7 @@ export function AuthMarketingLayout({
               />
             </svg>
           </div>
-          <span className="text-base font-bold tracking-tight text-slate-900">gShift</span>
+          <span className="text-base font-bold tracking-tight text-slate-900">{BRAND.name}</span>
         </div>
 
         <div className="w-full max-w-sm">
@@ -94,12 +98,20 @@ export function AuthMarketingLayout({
             <div className="space-y-4">{children}</div>
 
             <div className="mt-5 flex items-center justify-between border-t border-slate-100 pt-4 text-xs">
-              <Link
-                href="#"
-                className="text-slate-500 transition-colors hover:text-indigo-600 hover:underline underline-offset-4"
-              >
-                Forgot password?
-              </Link>
+              {forgotPasswordHref ? (
+                <Link
+                  href={forgotPasswordHref}
+                  className="text-slate-500 transition-colors hover:text-indigo-600 hover:underline underline-offset-4"
+                >
+                  Forgot password?
+                </Link>
+              ) : forgotPasswordDisabled ? (
+                <span className="cursor-not-allowed text-slate-400" aria-disabled="true" title="Coming soon">
+                  Forgot password?
+                </span>
+              ) : (
+                <span />
+              )}
               <Link
                 href="#"
                 className="text-slate-500 transition-colors hover:text-indigo-600 hover:underline underline-offset-4"

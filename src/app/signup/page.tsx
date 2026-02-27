@@ -27,6 +27,9 @@ export default function SignupPage() {
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (loading) {
+      return;
+    }
     setLoading(true);
     setError(null);
     setMessage(null);
@@ -66,7 +69,7 @@ export default function SignupPage() {
   return (
     <AuthMarketingLayout
       title="Create account"
-      description="Create your company workspace and start setup in minutes."
+      description="Set up your workspace and invite your team in a few steps."
       footer={<AuthFooterLink href="/login" label="Sign in" text="Already have an account?" />}
     >
       <form onSubmit={onSubmit} className="space-y-4">
@@ -77,10 +80,11 @@ export default function SignupPage() {
             value={email}
             onChange={(event) => setEmail(event.target.value)}
             type="email"
-            placeholder="you@company.com"
+            placeholder="name@company.com"
             autoComplete="email"
             required
           />
+          <p className="text-xs text-slate-500">This will be the workspace owner login.</p>
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="signup-password">Password</Label>
@@ -89,10 +93,11 @@ export default function SignupPage() {
             value={password}
             onChange={(event) => setPassword(event.target.value)}
             type="password"
-            placeholder="Min. 8 characters"
+            placeholder="At least 8 characters"
             autoComplete="new-password"
             required
           />
+          <p className="text-xs text-slate-500">Use a strong password with letters and numbers.</p>
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="signup-company">Company name</Label>
@@ -101,9 +106,10 @@ export default function SignupPage() {
             value={companyName}
             onChange={(event) => setCompanyName(event.target.value)}
             type="text"
-            placeholder="Acme Corp"
+            placeholder="Northwind Operations"
             required
           />
+          <p className="text-xs text-slate-500">Shown to your team across the app.</p>
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
@@ -144,7 +150,14 @@ export default function SignupPage() {
           </div>
         ) : null}
         <Button type="submit" disabled={loading} className="w-full" size="lg">
-          {loading ? "Creating account..." : "Create account"}
+          {loading ? (
+            <span className="inline-flex items-center gap-2">
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" aria-hidden="true" />
+              Creating...
+            </span>
+          ) : (
+            "Create account"
+          )}
         </Button>
       </form>
     </AuthMarketingLayout>
