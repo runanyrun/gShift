@@ -1,22 +1,53 @@
 import { getSupabaseBrowserClient } from "./supabase-browser";
 
 export async function signInWithEmailPassword(email: string, password: string) {
-  const supabase = getSupabaseBrowserClient();
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email: email.trim().toLowerCase(),
-    password,
+  const response = await fetch("/api/auth/login", {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      email,
+      password,
+    }),
   });
-  if (error) {
-    throw new Error(error.message);
+
+  const body = (await response.json()) as {
+    ok?: boolean;
+    data?: {
+      userId?: string;
+      accessToken?: string | null;
+    };
+    error?: { message?: string } | string;
+  };
+
+  if (!response.ok || !body.ok || !body.data?.userId) {
+    const message =
+      typeof body.error === "string"
+        ? body.error
+        : body.error?.message ?? "Invalid credentials.";
+    throw new Error(message);
   }
-  return data;
+
+  return body.data;
 }
 
 export async function signOut() {
-  const supabase = getSupabaseBrowserClient();
-  const { error } = await supabase.auth.signOut();
-  if (error) {
-    throw new Error(error.message);
+  const response = await fetch("/api/auth/logout", {
+    method: "POST",
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    const body = (await response.json().catch(() => null)) as
+      | { error?: { message?: string } | string }
+      | null;
+    const message =
+      typeof body?.error === "string"
+        ? body.error
+        : body?.error?.message ?? "Failed to sign out.";
+    throw new Error(message);
   }
 }
 

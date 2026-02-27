@@ -63,7 +63,10 @@ test.describe("app smoke", () => {
   });
 
   test("auth page renders", async ({ page }) => {
+    await page.context().clearCookies();
     await page.goto("/login");
-    await expect(page.getByText("Sign in")).toBeVisible();
+    await expect(page.getByTestId("auth-email")).toBeVisible();
+    await expect(page.getByTestId("auth-password")).toBeVisible();
+    await expect(page.getByTestId("auth-submit")).toBeVisible();
   });
 });
