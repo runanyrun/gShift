@@ -372,7 +372,7 @@ export function ManagerJobDetailPage({ jobId }: { jobId: string }) {
       <Tabs defaultValue="applicants">
         <TabsList>
           <TabsTrigger value="applicants">Applicants</TabsTrigger>
-          <TabsTrigger value="audit">Audit trail</TabsTrigger>
+          <TabsTrigger value="activity">Activity</TabsTrigger>
         </TabsList>
         <TabsContent value="applicants">
           <Card>
@@ -416,10 +416,10 @@ export function ManagerJobDetailPage({ jobId }: { jobId: string }) {
             </CardContent>
           </Card>
         </TabsContent>
-        <TabsContent value="audit">
+        <TabsContent value="activity">
           <Card>
             <CardHeader>
-              <CardTitle>Audit trail</CardTitle>
+              <CardTitle>Activity</CardTitle>
             </CardHeader>
             <CardContent>
               {job.events.length === 0 ? (
