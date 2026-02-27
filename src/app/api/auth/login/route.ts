@@ -20,7 +20,6 @@ function hasAuthCookies(response: NextResponse): boolean {
 
   return response.cookies.getAll().length > 0;
 }
-
 export async function POST(request: NextRequest) {
   let body: LoginBody;
   try {
@@ -47,14 +46,12 @@ export async function POST(request: NextRequest) {
         NextResponse.json({ ok: false, error: { message: error?.message ?? "Invalid credentials." } }, { status: 401 }),
       );
     }
-
     if (!data.session) {
       return applyResponseCookies(
         authResponse,
         NextResponse.json({ ok: false, error: { message: "Auth session missing." } }, { status: 502 }),
       );
     }
-
     if (!hasAuthCookies(authResponse)) {
       console.error("Login API: missing Set-Cookie after sign-in", { userId: data.user.id });
       return applyResponseCookies(
@@ -62,7 +59,6 @@ export async function POST(request: NextRequest) {
         NextResponse.json({ ok: false, error: { message: "Failed to establish auth cookie." } }, { status: 500 }),
       );
     }
-
     return applyResponseCookies(
       authResponse,
       NextResponse.json(
