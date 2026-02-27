@@ -41,35 +41,44 @@ export function LoginClient() {
 
   return (
     <AuthMarketingLayout
-      title="Sign in"
-      description="Access your workspace dashboard, schedules, and reports."
+      title="Welcome back"
+      description="Sign in to your workspace to continue."
       footer={<AuthFooterLink href="/signup" label="Create one" text="No account yet?" />}
     >
-      <form onSubmit={onSubmit} className="space-y-3">
-        <div className="space-y-1">
-          <Label htmlFor="login-email">Email</Label>
+      <form onSubmit={onSubmit} className="space-y-4">
+        <div className="space-y-1.5">
+          <Label htmlFor="login-email">Email address</Label>
           <Input
             id="login-email"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
             type="email"
+            placeholder="you@company.com"
             autoComplete="email"
             required
           />
         </div>
-        <div className="space-y-1">
+        <div className="space-y-1.5">
           <Label htmlFor="login-password">Password</Label>
           <Input
             id="login-password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
             type="password"
+            placeholder="••••••••"
             autoComplete="current-password"
             required
           />
         </div>
-        {error ? <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p> : null}
-        <Button type="submit" disabled={loading} className="w-full">
+        {error ? (
+          <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2.5">
+            <svg className="mt-0.5 h-4 w-4 shrink-0 text-red-500" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
+            </svg>
+            <p className="text-sm text-red-700">{error}</p>
+          </div>
+        ) : null}
+        <Button type="submit" disabled={loading} className="w-full" size="lg">
           {loading ? "Signing in..." : "Sign in"}
         </Button>
       </form>

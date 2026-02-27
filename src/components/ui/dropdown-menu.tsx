@@ -64,7 +64,7 @@ export function DropdownMenuContent({
     <>
       <button type="button" aria-label="Close menu" className="fixed inset-0 z-40 cursor-default" onClick={() => setOpen(false)} />
       <div
-        className={`absolute z-50 mt-2 min-w-[10rem] rounded-md border border-slate-200 bg-white p-1 text-slate-900 shadow-md ${alignClass} ${className}`.trim()}
+        className={`absolute z-50 mt-2 min-w-[10rem] rounded-xl border border-slate-200 bg-white p-1 text-slate-900 shadow-[0_8px_24px_0_rgb(0_0_0/0.12)] ${alignClass} ${className}`.trim()}
       >
         {children}
       </div>
@@ -82,7 +82,7 @@ export function DropdownMenuItem({
   return (
     <button
       type="button"
-      className={`flex w-full items-center rounded-sm px-2 py-1.5 text-sm hover:bg-slate-100 ${className}`.trim()}
+      className={`flex w-full items-center rounded-lg px-2.5 py-1.5 text-sm text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-900 ${className}`.trim()}
       onClick={(event) => {
         if (typeof onClick === "function") {
           onClick(event);
