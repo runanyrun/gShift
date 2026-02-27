@@ -9,6 +9,11 @@ import { DEFAULT_FORMAT, makeFormatters, resolveFormatConfig } from "../../../li
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../../components/ui/card";
 import { Badge } from "../../../components/ui/badge";
 import { Button } from "../../../components/ui/button";
+import { PageHeader } from "../../../components/layout/PageHeader";
+import { KpiCard } from "../../../components/ui/kpi-card";
+import { Section } from "../../../components/ui/section";
+import { EmptyState } from "../../../components/ui/empty-state";
+import { Skeleton } from "../../../components/ui/skeleton";
 
 type ApiResponse<T> = { ok: boolean; data?: T; error?: string };
 type Location = { id: string; name: string; timezone: string };
@@ -181,7 +186,17 @@ export default function DashboardPage() {
   }, [me, meLoading, router]);
 
   if (meLoading || !me) {
-    return <div>Loading dashboard...</div>;
+    return (
+      <section className="space-y-6">
+        <PageHeader title="Dashboard" description="Company-level summary for staffing, budget, and weekly coverage." />
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <Skeleton className="h-28 w-full" />
+          <Skeleton className="h-28 w-full" />
+          <Skeleton className="h-28 w-full" />
+          <Skeleton className="h-28 w-full" />
+        </div>
+      </section>
+    );
   }
 
   if (resolvePostLoginRoute(me) !== "/dashboard") {
@@ -189,11 +204,21 @@ export default function DashboardPage() {
   }
 
   if (error) {
-    return <div>{error}</div>;
+    return <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>;
   }
 
   if (loading) {
-    return <div>Loading dashboard...</div>;
+    return (
+      <section className="space-y-6">
+        <PageHeader title="Dashboard" description="Company-level summary for staffing, budget, and weekly coverage." />
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <Skeleton className="h-28 w-full" />
+          <Skeleton className="h-28 w-full" />
+          <Skeleton className="h-28 w-full" />
+          <Skeleton className="h-28 w-full" />
+        </div>
+      </section>
+    );
   }
 
   const formatConfig = resolveFormatConfig({
@@ -221,82 +246,72 @@ export default function DashboardPage() {
   }
 
   return (
-    <section className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold text-slate-900">Dashboard</h1>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={() => router.push("/settings/company")}>
-            Company Settings
-          </Button>
-          <Button onClick={() => router.push("/schedule")}>
-            Go to Schedule
-          </Button>
-        </div>
-      </div>
+    <section className="space-y-6">
+      <PageHeader
+        title="Dashboard"
+        description="Company-level summary for staffing, budget, and weekly coverage."
+        actions={(
+          <>
+            <Button variant="outline" onClick={() => router.push("/settings/company")}>
+              Company settings
+            </Button>
+            <Button onClick={() => router.push("/schedule")}>
+              Open schedule
+            </Button>
+          </>
+        )}
+      />
 
       {setupRequired ? (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-amber-200 bg-amber-50 px-4 py-3">
-          <p className="text-sm text-amber-900">Complete setup: Add a location</p>
-          <Button variant="outline" onClick={() => router.push("/settings/locations")}>
-            Add location
-          </Button>
-        </div>
+        <EmptyState
+          title="Setup required"
+          description="Add your first location before building schedules and budget views."
+          actionLabel="Add location"
+          onAction={() => router.push("/settings/locations")}
+        />
       ) : null}
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>This week cost</CardDescription>
-            <CardTitle>{setupRequired ? "Setup required" : formatCurrency(weekCostTotal)}</CardTitle>
-            <CardDescription>Based on scheduled shifts for selected location and current week</CardDescription>
-          </CardHeader>
-        </Card>
+        <KpiCard
+          label="This week cost"
+          value={setupRequired ? "Setup required" : formatCurrency(weekCostTotal)}
+          hint="Scheduled shifts for the current week"
+        />
+        <KpiCard
+          label="Weekly budget"
+          value={setupRequired ? "Setup required" : hasBudget ? formatCurrency(budget as number) : "Not set"}
+          hint="Budget limit from company settings"
+        />
+        <KpiCard
+          label="Budget status"
+          value={setupRequired ? "Setup required" : budgetStatusText}
+          hint="Remaining amount or exceeded delta"
+        />
+        <KpiCard
+          label="Top cost contributor"
+          value={setupRequired ? "Setup required" : employeeCount === 0 ? "—" : topContributor ? formatCurrency(topContributor.total_cost) : "No shifts yet"}
+          hint={topContributor ? topContributor.employee_name : "No employee shifts yet"}
+        />
+      </div>
 
+      <Section title="Overview" description="Track setup completeness and quick actions from one place.">
         <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>Weekly budget</CardDescription>
-            <CardTitle>
-              {setupRequired ? "Setup required" : hasBudget ? formatCurrency(budget as number) : "Not set"}
-            </CardTitle>
-            <CardDescription>Based on scheduled shifts for selected location and current week</CardDescription>
-          </CardHeader>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>Budget status</CardDescription>
-            <CardTitle>{setupRequired ? "Setup required" : budgetStatusText}</CardTitle>
-            <CardDescription>Based on scheduled shifts for selected location and current week</CardDescription>
-          </CardHeader>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>Top cost contributor</CardDescription>
-            <CardTitle>
-              {setupRequired
-                ? "Setup required"
-                : employeeCount === 0
-                  ? "—"
-                  : topContributor
-                    ? formatCurrency(topContributor.total_cost)
-                    : "No shifts yet"}
-            </CardTitle>
-            <CardDescription>Based on scheduled shifts for selected location and current week</CardDescription>
-          </CardHeader>
-          <CardContent className="pt-0">
-            {setupRequired ? (
-              <p className="text-sm text-slate-500">Add at least one location to start tracking costs.</p>
-            ) : employeeCount === 0 ? (
-              <p className="text-sm text-slate-500">No employees yet</p>
-            ) : topContributor ? (
-              <Badge variant="secondary">{topContributor.employee_name}</Badge>
-            ) : (
-              <p className="text-sm text-slate-500">No shifts yet</p>
-            )}
+          <CardContent className="grid gap-4 p-4 md:grid-cols-3">
+            <div>
+              <p className="text-xs text-slate-500">Locations</p>
+              <p className="text-2xl font-semibold text-slate-900">{locationCount}</p>
+            </div>
+            <div>
+              <p className="text-xs text-slate-500">Employees</p>
+              <p className="text-2xl font-semibold text-slate-900">{employeeCount}</p>
+            </div>
+            <div>
+              <p className="text-xs text-slate-500">Weekly shifts</p>
+              <p className="text-2xl font-semibold text-slate-900">{weekShiftCount}</p>
+            </div>
           </CardContent>
         </Card>
-      </div>
+      </Section>
     </section>
   );
 }

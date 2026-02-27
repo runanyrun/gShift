@@ -9,6 +9,8 @@ import { Select } from "../../../../components/ui/select";
 import { toast } from "../../../../components/ui/sonner";
 import { Card, CardContent } from "../../../../components/ui/card";
 import { PageHeader } from "../../../../components/layout/PageHeader";
+import { Section } from "../../../../components/ui/section";
+import { Skeleton } from "../../../../components/ui/skeleton";
 
 type ApiResponse<T> = {
   ok: boolean;
@@ -150,11 +152,23 @@ export default function CompanySettingsPage() {
   }
 
   if (loading) {
-    return <div className="text-sm text-slate-600">Loading company settings...</div>;
+    return (
+      <section className="space-y-6">
+        <PageHeader title="Company Settings" description="Configure locale, currency, and timezone defaults." />
+        <Card>
+          <CardContent className="space-y-3 p-4">
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+          </CardContent>
+        </Card>
+      </section>
+    );
   }
 
   return (
-    <section className="space-y-4">
+    <section className="space-y-6">
       <PageHeader
         title="Company Settings"
         description={settings?.name ?? "Configure locale, currency, and timezone defaults."}
@@ -169,9 +183,9 @@ export default function CompanySettingsPage() {
 
       {error ? <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p> : null}
 
-      <Card>
-        <CardContent className="p-4">
-          <div className="grid gap-3 md:grid-cols-2">
+      <Section title="Defaults" description="These values drive formatting and scheduling defaults across the product.">
+        <Card>
+          <CardContent className="space-y-4 p-4">
             <div className="space-y-1">
               <Label htmlFor="company-locale">Locale</Label>
               <Select id="company-locale" value={locale} onChange={(event) => setLocale(event.target.value)}>
@@ -244,15 +258,15 @@ export default function CompanySettingsPage() {
                 placeholder="10000"
               />
             </div>
-          </div>
 
-          <div className="mt-4">
-            <Button type="button" onClick={() => void onSave()} disabled={saving || !dirty}>
-              {saving ? "Saving..." : "Save"}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+            <div>
+              <Button type="button" onClick={() => void onSave()} disabled={saving || !dirty}>
+                {saving ? "Saving..." : "Save settings"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </Section>
     </section>
   );
 }

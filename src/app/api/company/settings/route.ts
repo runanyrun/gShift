@@ -44,6 +44,21 @@ function isColumnMissingError(error: { message?: string; code?: string } | null)
   );
 }
 
+function logCompanySettingsFallback(action: "get" | "patch", error: { message?: string; code?: string } | null) {
+  if (!error) {
+    return;
+  }
+
+  console.warn(
+    JSON.stringify({
+      event: "company_settings_schema_fallback",
+      action,
+      errorCode: error.code ?? null,
+      errorMessage: error.message ?? null,
+    }),
+  );
+}
+
 export async function GET() {
   try {
     const supabase = await getServerSupabase();
@@ -57,6 +72,7 @@ export async function GET() {
       .single();
 
     if (isColumnMissingError(error)) {
+      logCompanySettingsFallback("get", error);
       const fallback = await supabase
         .from("companies")
         .select("id, name")
@@ -140,6 +156,7 @@ export async function PATCH(request: Request) {
       .single();
 
     if (isColumnMissingError(error)) {
+      logCompanySettingsFallback("patch", error);
       const fallback = await supabase
         .from("companies")
         .select("id, name")

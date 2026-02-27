@@ -10,6 +10,10 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Select } from "../ui/select";
+import { Sheet, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "../ui/sheet";
+import { DataTableToolbar } from "../ui/data-table-toolbar";
+import { EmptyState } from "../ui/empty-state";
+import { Skeleton } from "../ui/skeleton";
 
 type ApiResponse<T> = {
   ok: boolean;
@@ -321,6 +325,7 @@ export function WeeklySchedule() {
   const [cancelTargetShift, setCancelTargetShift] = useState<Shift | null>(null);
   const [cancelReason, setCancelReason] = useState("");
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
+  const [employeeSearch, setEmployeeSearch] = useState("");
 
   const [upsertQueue, setUpsertQueue] = useState<Record<string, ShiftInput>>({});
   const upsertQueueRef = useRef<Record<string, ShiftInput>>({});
@@ -703,6 +708,18 @@ export function WeeklySchedule() {
     openEditModal(tempShift);
   }
 
+  function onQuickAddShift() {
+    if (!selectedLocationId || employees.length === 0 || weekDays.length === 0) {
+      return;
+    }
+    const employee = selectedEmployeeId
+      ? employees.find((item) => item.id === selectedEmployeeId) ?? employees[0]
+      : employees[0];
+    const targetDay = weekDays[0];
+    const existing = shiftsByCell.get(`${employee.id}:${targetDay}`) ?? [];
+    onDoubleClickEmptyCell(employee, targetDay, existing);
+  }
+
   async function copyLastWeek() {
     if (!selectedLocationId) {
       return;
@@ -855,34 +872,73 @@ export function WeeklySchedule() {
     () => weeklyCostBreakdown.find((item) => item.employee_id === selectedEmployeeId) ?? null,
     [weeklyCostBreakdown, selectedEmployeeId],
   );
-  const visibleEmployees = useMemo(
-    () => (selectedEmployeeId ? employees.filter((employee) => employee.id === selectedEmployeeId) : employees),
-    [employees, selectedEmployeeId],
-  );
+  const visibleEmployees = useMemo(() => {
+    const search = employeeSearch.trim().toLocaleLowerCase("en-US");
+    return employees.filter((employee) => {
+      const selectedMatch = selectedEmployeeId ? employee.id === selectedEmployeeId : true;
+      const searchMatch = search.length === 0 || employee.full_name.toLocaleLowerCase("en-US").includes(search);
+      return selectedMatch && searchMatch;
+    });
+  }, [employeeSearch, employees, selectedEmployeeId]);
   const weeklyBudgetLimit = normalizeBudgetLimit(companySettings.weekly_budget_limit);
   const exceededBudgetAmount = weeklyBudgetLimit !== null && weekCostTotal > weeklyBudgetLimit
     ? weekCostTotal - weeklyBudgetLimit
     : 0;
 
   if (loading && locations.length === 0) {
-    return <div className="text-sm text-slate-600">Loading schedule...</div>;
+    return (
+      <div className="space-y-2 rounded-md border border-slate-200 bg-slate-50 px-4 py-4">
+        <Skeleton className="h-9 w-full" />
+        <Skeleton className="h-9 w-full" />
+        <Skeleton className="h-72 w-full" />
+      </div>
+    );
+  }
+
+  if (!loading && locations.length === 0) {
+    return (
+      <EmptyState
+        title="No locations yet"
+        description="Add a location in Settings or Setup to start building a weekly schedule."
+      />
+    );
   }
 
   return (
     <section className="space-y-4">
-      <header className="flex flex-wrap items-center gap-3 rounded-lg border border-slate-200 bg-white p-4">
-        <div className="flex items-center gap-2">
-          <Label htmlFor="location">Location</Label>
-          <Select id="location" value={selectedLocationId} onChange={(event) => setSelectedLocationId(event.target.value)}>
-            {locations.map((location) => (
-              <option key={location.id} value={location.id}>
-                {location.name}
-              </option>
-            ))}
-          </Select>
-        </div>
-
-        <div className="flex items-center gap-2">
+      <header className="rounded-lg border border-slate-200 bg-white">
+        <DataTableToolbar
+          searchValue={employeeSearch}
+          onSearchChange={setEmployeeSearch}
+          searchPlaceholder="Search employee"
+          filters={(
+            <>
+              <div className="flex items-center gap-2">
+                <Label htmlFor="location">Location</Label>
+                <Select id="location" value={selectedLocationId} onChange={(event) => setSelectedLocationId(event.target.value)}>
+                  {locations.map((location) => (
+                    <option key={location.id} value={location.id}>
+                      {location.name}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+              <p className="text-xs text-slate-500">Timezone: {tz}</p>
+            </>
+          )}
+          actions={(
+            <>
+              <Button type="button" onClick={() => void copyLastWeek()} disabled={!selectedLocationId || saving}>
+                Copy last week
+              </Button>
+              <Button type="button" variant="outline" onClick={onQuickAddShift} disabled={!selectedLocationId || employees.length === 0}>
+                Quick add shift
+              </Button>
+            </>
+          )}
+        />
+        <div className="flex flex-wrap items-center gap-3 px-4 py-3">
+          <div className="flex items-center gap-2">
           <Button
             type="button"
             variant="outline"
@@ -901,24 +957,20 @@ export function WeeklySchedule() {
             Next
           </Button>
         </div>
-
-        <Button type="button" onClick={() => void copyLastWeek()} disabled={!selectedLocationId || saving}>
-          Copy last week
-        </Button>
-        <p className="text-sm text-slate-700">Week cost: {formatCurrency(weekCostTotal)}</p>
-        {selectedBreakdownEmployee ? (
-          <>
-            <Badge variant="secondary">Filtered: {selectedBreakdownEmployee.employee_name}</Badge>
-            <Button type="button" variant="outline" onClick={() => setSelectedEmployeeId(null)}>
-              Clear filter
-            </Button>
-          </>
-        ) : null}
-        {exceededBudgetAmount > 0 ? (
-          <Badge variant="destructive">Weekly budget exceeded by {formatCurrency(exceededBudgetAmount)}</Badge>
-        ) : null}
-
-        {saving ? <p className="text-sm text-slate-600">Saving...</p> : null}
+          <p className="text-sm text-slate-700">Week cost: {formatCurrency(weekCostTotal)}</p>
+          {selectedBreakdownEmployee ? (
+            <>
+              <Badge variant="secondary">Filtered: {selectedBreakdownEmployee.employee_name}</Badge>
+              <Button type="button" variant="outline" onClick={() => setSelectedEmployeeId(null)}>
+                Clear filter
+              </Button>
+            </>
+          ) : null}
+          {exceededBudgetAmount > 0 ? (
+            <Badge variant="destructive">Weekly budget exceeded by {formatCurrency(exceededBudgetAmount)}</Badge>
+          ) : null}
+          {saving ? <p className="text-sm text-slate-600">Saving...</p> : null}
+        </div>
       </header>
 
       {error ? <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p> : null}
@@ -976,7 +1028,13 @@ export function WeeklySchedule() {
             ))}
           </div>
 
-          {visibleEmployees.length === 0 ? <div className="p-4 text-sm text-slate-600">No employees found for this location.</div> : null}
+          {visibleEmployees.length === 0 ? (
+            <div className="p-4 text-sm text-slate-600">
+              {employeeSearch.trim().length > 0
+                ? "No employees match this search."
+                : "No employees found for this location."}
+            </div>
+          ) : null}
 
           {visibleEmployees.map((employee) => (
             <div key={employee.id} className="grid grid-cols-[220px_repeat(7,minmax(140px,1fr))] border-b border-slate-100">
@@ -995,7 +1053,6 @@ export function WeeklySchedule() {
                   >
                     <div className="space-y-2">
                       {cellShifts.map((shift) => {
-                        const employeeName = employees.find((candidate) => candidate.id === shift.employee_id)?.full_name ?? "Employee";
                         const roleName = roles.find((role) => role.id === shift.role_id)?.name ?? "Role";
                         const metrics = calcShiftMetrics(shift);
                         const shiftStatus = statusOfShift(shift);
@@ -1031,11 +1088,8 @@ export function WeeklySchedule() {
                                 {shiftStatus.charAt(0).toUpperCase() + shiftStatus.slice(1)}
                               </Badge>
                             </div>
-                            <p>{employeeName}</p>
                             <p>{roleName} • {formatNumber(metrics.duration_hours)}h</p>
-                            <p className="text-slate-600">
-                              {formatCurrency(metrics.hourly_wage)}/h • {formatCurrency(metrics.shift_cost)}
-                            </p>
+                            <p className="text-slate-600">{formatCurrency(metrics.shift_cost)}</p>
                             {shift.cancel_reason ? (
                               <p className="text-slate-500">Reason: {shift.cancel_reason}</p>
                             ) : null}
@@ -1044,37 +1098,15 @@ export function WeeklySchedule() {
                                 type="button"
                                 variant="outline"
                                 className="h-7 px-2 text-[11px]"
-                                disabled={!isOpen}
-                                onClick={(event) => {
-                                  event.stopPropagation();
-                                  openEditModal(shift);
-                                }}
-                              >
-                                Edit
-                              </Button>
-                              <Button
-                                type="button"
-                                variant="outline"
-                                className="h-7 px-2 text-[11px]"
-                                disabled={!isOpen}
-                                onClick={(event) => {
-                                  event.stopPropagation();
-                                  setCloseTargetShift(shift);
-                                }}
-                              >
-                                Close
-                              </Button>
-                              <Button
-                                type="button"
-                                variant="destructive"
-                                className="h-7 px-2 text-[11px]"
                                 disabled={isCancelled}
                                 onClick={(event) => {
                                   event.stopPropagation();
-                                  setCancelTargetShift(shift);
+                                  if (isOpen) {
+                                    openEditModal(shift);
+                                  }
                                 }}
                               >
-                                Cancel
+                                Details
                               </Button>
                             </div>
                           </div>
@@ -1089,188 +1121,214 @@ export function WeeklySchedule() {
         </div>
       </div>
 
-      <Dialog open={isDialogOpen} onOpenChange={(open) => (open ? setIsDialogOpen(true) : onCancelEditModal())}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit Shift</DialogTitle>
-            <DialogDescription>Update shift details and save changes.</DialogDescription>
-          </DialogHeader>
+      <Sheet open={isDialogOpen} onOpenChange={(open) => (!open ? onCancelEditModal() : setIsDialogOpen(true))}>
+        <SheetHeader>
+          <SheetTitle>Shift details</SheetTitle>
+          <SheetDescription>Edit assignment, timing, and status in one place.</SheetDescription>
+        </SheetHeader>
 
-          {editingShift ? (
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label htmlFor="start-at">Start</Label>
-                <Input
-                  id="start-at"
-                  type="datetime-local"
-                  value={toDateTimeInputValue(editingShift.start_at, tz)}
-                  onChange={(event) =>
-                    setEditingShift((current) =>
-                      current
-                        ? {
-                            ...current,
-                            start_at: toIsoFromDateTimeInput(event.target.value, tz) || current.start_at,
-                          }
-                        : current,
-                    )
-                  }
-                />
-              </div>
-
-              <div className="space-y-1">
-                <Label htmlFor="end-at">End</Label>
-                <Input
-                  id="end-at"
-                  type="datetime-local"
-                  value={toDateTimeInputValue(editingShift.end_at, tz)}
-                  onChange={(event) =>
-                    setEditingShift((current) =>
-                      current
-                        ? {
-                            ...current,
-                            end_at: toIsoFromDateTimeInput(event.target.value, tz) || current.end_at,
-                          }
-                        : current,
-                    )
-                  }
-                />
-              </div>
-
-              <div className="col-span-2 space-y-1">
-                <Label htmlFor="employee">Employee</Label>
-                <Select
-                  id="employee"
-                  value={editingShift.employee_id}
-                  onChange={(event) =>
-                    setEditingShift((current) =>
-                      current
-                        ? {
-                            ...current,
-                            employee_id: event.target.value,
-                          }
-                        : current,
-                    )
-                  }
-                >
-                  {employees.map((employee) => (
-                    <option key={employee.id} value={employee.id}>
-                      {employee.full_name}
-                    </option>
-                  ))}
-                </Select>
-              </div>
-
-              <div className="col-span-2 space-y-1">
-                <Label htmlFor="role">Role</Label>
-                <Select
-                  id="role"
-                  value={editingShift.role_id}
-                  onChange={(event) =>
-                    setEditingShift((current) =>
-                      current
-                        ? {
-                            ...current,
-                            role_id: event.target.value,
-                          }
-                        : current,
-                    )
-                  }
-                >
-                  {roles.map((role) => (
-                    <option key={role.id} value={role.id}>
-                      {role.name}
-                    </option>
-                  ))}
-                </Select>
-              </div>
-
-              <div className="space-y-1">
-                <Label htmlFor="break">Break minutes</Label>
-                <Input
-                  id="break"
-                  type="number"
-                  min={0}
-                  value={editingShift.break_minutes}
-                  onChange={(event) =>
-                    setEditingShift((current) =>
-                      current
-                        ? {
-                            ...current,
-                            break_minutes: Math.max(0, Number(event.target.value || 0)),
-                          }
-                        : current,
-                    )
-                  }
-                />
-              </div>
-
-              <div className="space-y-1">
-                <Label htmlFor="hourly">Hourly wage</Label>
-                <Input
-                  id="hourly"
-                  type="number"
-                  min={0}
-                  step="0.01"
-                  value={editingShift.hourly_wage}
-                  onChange={(event) =>
-                    setEditingShift((current) =>
-                      current
-                        ? {
-                            ...current,
-                            hourly_wage: event.target.value,
-                          }
-                        : current,
-                    )
-                  }
-                />
-              </div>
-
-              <div className="col-span-2 space-y-1">
-                <Label htmlFor="notes">Notes</Label>
-                <textarea
-                  id="notes"
-                  rows={3}
-                  className="w-full rounded-md border border-slate-300 p-2 text-sm"
-                  value={editingShift.notes}
-                  onChange={(event) =>
-                    setEditingShift((current) =>
-                      current
-                        ? {
-                            ...current,
-                            notes: event.target.value,
-                          }
-                        : current,
-                    )
-                  }
-                />
-              </div>
-            </div>
-          ) : null}
-
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="destructive"
-              onClick={() => {
-                if (!editingShift) {
-                  return;
+        {editingShift ? (
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label htmlFor="start-at">Start</Label>
+              <Input
+                id="start-at"
+                type="datetime-local"
+                value={toDateTimeInputValue(editingShift.start_at, tz)}
+                onChange={(event) =>
+                  setEditingShift((current) =>
+                    current
+                      ? {
+                          ...current,
+                          start_at: toIsoFromDateTimeInput(event.target.value, tz) || current.start_at,
+                        }
+                      : current,
+                  )
                 }
-                void deleteShift(editingShift.id);
-                setIsDialogOpen(false);
-                setEditingShift(null);
-              }}
-            >
-              Delete
-            </Button>
-            <Button type="button" variant="secondary" onClick={onCancelEditModal}>
-              Cancel
-            </Button>
-            <Button type="button" onClick={() => void onSaveEditModal()}>
-              Save
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+              />
+            </div>
+
+            <div className="space-y-1">
+              <Label htmlFor="end-at">End</Label>
+              <Input
+                id="end-at"
+                type="datetime-local"
+                value={toDateTimeInputValue(editingShift.end_at, tz)}
+                onChange={(event) =>
+                  setEditingShift((current) =>
+                    current
+                      ? {
+                          ...current,
+                          end_at: toIsoFromDateTimeInput(event.target.value, tz) || current.end_at,
+                        }
+                      : current,
+                  )
+                }
+              />
+            </div>
+
+            <div className="col-span-2 space-y-1">
+              <Label htmlFor="employee">Employee</Label>
+              <Select
+                id="employee"
+                value={editingShift.employee_id}
+                onChange={(event) =>
+                  setEditingShift((current) =>
+                    current
+                      ? {
+                          ...current,
+                          employee_id: event.target.value,
+                        }
+                      : current,
+                  )
+                }
+              >
+                {employees.map((employee) => (
+                  <option key={employee.id} value={employee.id}>
+                    {employee.full_name}
+                  </option>
+                ))}
+              </Select>
+            </div>
+
+            <div className="col-span-2 space-y-1">
+              <Label htmlFor="role">Role</Label>
+              <Select
+                id="role"
+                value={editingShift.role_id}
+                onChange={(event) =>
+                  setEditingShift((current) =>
+                    current
+                      ? {
+                          ...current,
+                          role_id: event.target.value,
+                        }
+                      : current,
+                  )
+                }
+              >
+                {roles.map((role) => (
+                  <option key={role.id} value={role.id}>
+                    {role.name}
+                  </option>
+                ))}
+              </Select>
+            </div>
+
+            <div className="space-y-1">
+              <Label htmlFor="break">Break minutes</Label>
+              <Input
+                id="break"
+                type="number"
+                min={0}
+                value={editingShift.break_minutes}
+                onChange={(event) =>
+                  setEditingShift((current) =>
+                    current
+                      ? {
+                          ...current,
+                          break_minutes: Math.max(0, Number(event.target.value || 0)),
+                        }
+                      : current,
+                  )
+                }
+              />
+            </div>
+
+            <div className="space-y-1">
+              <Label htmlFor="hourly">Hourly wage</Label>
+              <Input
+                id="hourly"
+                type="number"
+                min={0}
+                step="0.01"
+                value={editingShift.hourly_wage}
+                onChange={(event) =>
+                  setEditingShift((current) =>
+                    current
+                      ? {
+                          ...current,
+                          hourly_wage: event.target.value,
+                        }
+                      : current,
+                  )
+                }
+              />
+            </div>
+
+            <div className="col-span-2 space-y-1">
+              <Label htmlFor="notes">Notes</Label>
+              <textarea
+                id="notes"
+                rows={3}
+                className="w-full rounded-md border border-slate-300 p-2 text-sm"
+                value={editingShift.notes}
+                onChange={(event) =>
+                  setEditingShift((current) =>
+                    current
+                      ? {
+                          ...current,
+                          notes: event.target.value,
+                        }
+                      : current,
+                  )
+                }
+              />
+            </div>
+          </div>
+        ) : null}
+
+        <SheetFooter>
+          {editingShift && !isTempId(editingShift.id) ? (
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  const original = shifts.find((shift) => shift.id === editingShift.id);
+                  if (original) {
+                    setCloseTargetShift(original);
+                  }
+                }}
+              >
+                Close shift
+              </Button>
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={() => {
+                  const original = shifts.find((shift) => shift.id === editingShift.id);
+                  if (original) {
+                    setCancelTargetShift(original);
+                  }
+                }}
+              >
+                Cancel shift
+              </Button>
+            </>
+          ) : null}
+          <Button
+            type="button"
+            variant="destructive"
+            onClick={() => {
+              if (!editingShift) {
+                return;
+              }
+              void deleteShift(editingShift.id);
+              setIsDialogOpen(false);
+              setEditingShift(null);
+            }}
+          >
+            Delete
+          </Button>
+          <Button type="button" variant="secondary" onClick={onCancelEditModal}>
+            Close
+          </Button>
+          <Button type="button" onClick={() => void onSaveEditModal()}>
+            Save
+          </Button>
+        </SheetFooter>
+      </Sheet>
 
       <Dialog open={Boolean(closeTargetShift)} onOpenChange={(open) => (!open ? setCloseTargetShift(null) : null)}>
         <DialogContent>

@@ -53,13 +53,39 @@ export async function requireUser(supabase: SupabaseClient): Promise<User> {
 }
 
 export async function requireCompanyId(supabase: SupabaseClient): Promise<string> {
-  const { data, error } = await supabase.rpc("my_company_id");
+  // Canonical RPC is `current_user_company_id()`.
+  // Temporary fallback to `my_company_id()` remains for compatibility during rollout.
+  // Follow-up: remove the alias and fallback once all environments have migration 0022 applied.
+  const resolveWithRpc = async (name: "my_company_id" | "current_user_company_id") => {
+    const { data, error } = await supabase.rpc(name);
+    if (error) {
+      return { companyId: null as string | null, error };
+    }
+    return { companyId: typeof data === "string" ? data : null, error: null };
+  };
 
-  if (error) {
-    throw new HttpError(400, error.message);
+  const primary = await resolveWithRpc("current_user_company_id");
+  let companyId = primary.companyId;
+
+  if (!companyId && primary.error) {
+    const message = primary.error.message.toLowerCase();
+    const missingFunction =
+      message.includes("current_user_company_id")
+      || message.includes("could not find the function")
+      || message.includes("schema cache")
+      || primary.error.code === "PGRST202";
+
+    if (!missingFunction) {
+      throw new HttpError(400, primary.error.message);
+    }
+
+    const fallback = await resolveWithRpc("my_company_id");
+    if (fallback.error) {
+      throw new HttpError(400, fallback.error.message);
+    }
+    companyId = fallback.companyId;
   }
 
-  const companyId = typeof data === "string" ? data : null;
   if (!companyId) {
     throw new HttpError(403, "No company found for current user");
   }

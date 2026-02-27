@@ -2,19 +2,23 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Badge } from "../ui/badge";
 
-type NavItem = {
+export type NavItem = {
   href: string;
   label: string;
+  badge?: string;
 };
 
-const NAV_ITEMS: NavItem[] = [
+export const NAV_ITEMS: NavItem[] = [
   { href: "/dashboard", label: "Dashboard" },
-  { href: "/onboarding", label: "Onboarding" },
-  { href: "/employees", label: "Employees" },
+  { href: "/jobs", label: "Jobs" },
   { href: "/schedule", label: "Schedule" },
   { href: "/reports", label: "Reports" },
+  { href: "/employees", label: "Employees" },
+  { href: "/manager/jobs", label: "Manager Jobs" },
   { href: "/settings/company", label: "Settings" },
+  { href: "/onboarding", label: "Setup" },
 ];
 
 function isActive(pathname: string, href: string) {
@@ -25,7 +29,7 @@ function isActive(pathname: string, href: string) {
 }
 
 function linkClasses(active: boolean) {
-  const base = "block rounded-md px-3 py-2 text-sm font-medium transition-colors";
+  const base = "flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium transition-colors";
   if (active) {
     return `${base} bg-slate-900 text-white`;
   }
@@ -36,29 +40,23 @@ export function SidebarNav() {
   const pathname = usePathname();
 
   return (
-    <>
-      <nav className="md:hidden" aria-label="Primary">
-        <div className="mb-4 flex flex-wrap gap-2">
+    <aside className="hidden w-64 shrink-0 border-r border-slate-200 bg-white md:block">
+      <div className="sticky top-0 p-4">
+        <div className="mb-5 flex items-center justify-between px-1">
+          <p className="text-sm font-semibold tracking-wide text-slate-900">gShift</p>
+          <Badge variant="outline" className="text-[10px] uppercase tracking-wide">
+            v1
+          </Badge>
+        </div>
+        <nav aria-label="Primary" className="space-y-1">
           {NAV_ITEMS.map((item) => (
             <Link key={item.href} href={item.href} className={linkClasses(isActive(pathname, item.href))}>
-              {item.label}
+              <span>{item.label}</span>
+              {item.badge ? <Badge variant="secondary">{item.badge}</Badge> : null}
             </Link>
           ))}
-        </div>
-      </nav>
-
-      <aside className="hidden w-60 shrink-0 border-r border-slate-200 bg-white md:block">
-        <div className="sticky top-0 p-4">
-          <p className="mb-4 px-1 text-sm font-semibold tracking-wide text-slate-900">gShift</p>
-          <nav aria-label="Primary" className="space-y-1">
-            {NAV_ITEMS.map((item) => (
-              <Link key={item.href} href={item.href} className={linkClasses(isActive(pathname, item.href))}>
-                {item.label}
-              </Link>
-            ))}
-          </nav>
-        </div>
-      </aside>
-    </>
+        </nav>
+      </div>
+    </aside>
   );
 }

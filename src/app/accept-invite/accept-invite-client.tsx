@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { Button } from "../../components/ui/button";
+import { AuthCardLayout } from "../../components/auth/AuthCardLayout";
 import { useMe } from "../../core/auth/useMe";
 import { createBrowserSupabaseClient } from "../../core/db/supabase";
 
@@ -26,21 +27,18 @@ export function AcceptInviteClient() {
   useEffect(() => {
     let mounted = true;
     const supabase = createBrowserSupabaseClient();
-    supabase.auth
+    void supabase.auth
       .getSession()
       .then(({ data }) => {
-        if (!mounted) {
-          return;
+        if (mounted) {
+          setIsLoggedIn(Boolean(data.session?.access_token));
         }
-        setIsLoggedIn(Boolean(data.session?.access_token));
       })
       .catch(() => {
-        if (!mounted) {
-          return;
+        if (mounted) {
+          setIsLoggedIn(false);
         }
-        setIsLoggedIn(false);
       });
-
     return () => {
       mounted = false;
     };
@@ -52,7 +50,7 @@ export function AcceptInviteClient() {
       const supabase = createBrowserSupabaseClient();
       const { data, error: sessionError } = await supabase.auth.getSession();
       if (sessionError || !data.session?.access_token) {
-        throw new Error("Please login first.");
+        throw new Error("Please sign in first.");
       }
       const response = await fetch("/api/invites/accept", {
         method: "POST",
@@ -65,31 +63,16 @@ export function AcceptInviteClient() {
       const body = (await response.json()) as {
         ok: boolean;
         data?: { employeeId: string; tenantId: string };
-        error?:
-          | string
-          | {
-              code?: string;
-              message?: string;
-            };
+        error?: string | { code?: string; message?: string };
       };
       if (!response.ok || !body.ok) {
         const errorCode = typeof body.error === "object" ? body.error?.code ?? "unknown" : "unknown";
-        const errorMessage =
-          typeof body.error === "string"
-            ? body.error
-            : body.error?.message ?? "Invite acceptance failed.";
-        setState({
-          status: "error",
-          code: errorCode,
-          message: errorMessage,
-        });
+        const errorMessage = typeof body.error === "string" ? body.error : body.error?.message ?? "Invite acceptance failed.";
+        setState({ status: "error", code: errorCode, message: errorMessage });
         return;
       }
       await refresh();
-      setState({
-        status: "success",
-        message: "Invite accepted. Your employee profile is linked.",
-      });
+      setState({ status: "success", message: "Invite accepted. Your employee profile is now linked." });
     } catch (acceptError) {
       setState({
         status: "error",
@@ -110,65 +93,59 @@ export function AcceptInviteClient() {
   const loginNext = workspace
     ? `/accept-invite?token=${encodeURIComponent(token)}&workspace=${encodeURIComponent(workspace)}`
     : `/accept-invite?token=${encodeURIComponent(token)}`;
-  const loginHref =
-    `/login?next=${encodeURIComponent(loginNext)}` +
-    (workspace ? `&workspace=${encodeURIComponent(workspace)}&reason=invite` : "&reason=invite");
-
-  const dashboardHref = workspace
-    ? `/dashboard?workspace=${encodeURIComponent(workspace)}`
-    : "/dashboard";
+  const loginHref = `/login?next=${encodeURIComponent(loginNext)}${workspace ? `&workspace=${encodeURIComponent(workspace)}&reason=invite` : "&reason=invite"}`;
+  const dashboardHref = workspace ? `/dashboard?workspace=${encodeURIComponent(workspace)}` : "/dashboard";
 
   return (
-    <div>
-      <h1>Accept Invite</h1>
-      {!token ? <p>Davet bulunamadı (token eksik).</p> : null}
+    <AuthCardLayout title="Accept invite" description="Join your workspace and connect your employee profile.">
+      {!token ? <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">Invite token is missing.</p> : null}
+
       {!isLoggedIn ? (
-        <p>
-          You must login first.{" "}
-          <Link href={loginHref}>
-            Go to login
+        <p className="text-sm text-slate-700">
+          You need to sign in before accepting this invite.{" "}
+          <Link href={loginHref} className="font-medium text-slate-900 underline decoration-slate-300 underline-offset-4">
+            Go to sign in
           </Link>
         </p>
       ) : (
-        <div>
-          <button type="button" disabled={!token || state.status === "loading"} onClick={acceptInvite}>
-            {state.status === "loading" ? "Accepting..." : "Accept Invite"}
-          </button>
-        </div>
+        <Button type="button" disabled={!token || state.status === "loading"} onClick={() => void acceptInvite()} className="w-full">
+          {state.status === "loading" ? "Accepting..." : "Accept invite"}
+        </Button>
       )}
 
       {state.status === "success" ? (
-        <div>
-          <p>{state.message}</p>
-          <button type="button" onClick={() => router.push(dashboardHref)}>
-            Dashboard&apos;a git
-          </button>
+        <div className="space-y-3 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-3">
+          <p className="text-sm text-emerald-700">{state.message}</p>
+          <Button type="button" variant="outline" onClick={() => router.push(dashboardHref)}>
+            Go to dashboard
+          </Button>
         </div>
       ) : null}
 
       {state.status === "error" ? (
-        <div>
+        <div className="space-y-2 rounded-md border border-red-200 bg-red-50 px-3 py-3 text-sm text-red-700">
           {state.code === "user-already-in-company" ? (
-            <div>
-              <p>Bu hesap başka bir workspace&apos;e bağlı.</p>
+            <>
+              <p>This account is already linked to another workspace.</p>
               <p>{state.message}</p>
               <p>
-                <Link href={workspace ? `/login?workspace=${encodeURIComponent(workspace)}&reason=invite` : "/login"}>
-                  Farklı hesapla giriş yap
+                <Link
+                  href={workspace ? `/login?workspace=${encodeURIComponent(workspace)}&reason=invite` : "/login"}
+                  className="font-medium text-red-800 underline underline-offset-4"
+                >
+                  Sign in with a different account
                 </Link>
               </p>
-              <p>
-                <Link href="/dashboard">Mevcut workspace&apos;ime git</Link>
-              </p>
-            </div>
-          ) : null}
-          {state.code === "invite-invalid" ? <p>Davet bulunamadı.</p> : null}
-          {state.code === "invite-expired" ? <p>Davet süresi doldu.</p> : null}
-          {!["user-already-in-company", "invite-invalid", "invite-expired"].includes(state.code) ? (
+            </>
+          ) : state.code === "invite-invalid" ? (
+            <p>Invite not found.</p>
+          ) : state.code === "invite-expired" ? (
+            <p>Invite has expired.</p>
+          ) : (
             <p>{state.message}</p>
-          ) : null}
+          )}
         </div>
       ) : null}
-    </div>
+    </AuthCardLayout>
   );
 }
