@@ -7,7 +7,7 @@
 
 1. npm run db:push
 
-> gshift@0.1.0 db:push
+> qshift@0.1.0 db:push
 > bash scripts/db-push.sh
 
 [db:push] Checking Supabase migrations...
@@ -22,17 +22,17 @@
 
 2. npm run typecheck
 
-> gshift@0.1.0 typecheck
+> qshift@0.1.0 typecheck
 > tsc --noEmit
 
 
 3. npm run test:employees
 
-> gshift@0.1.0 test:employees
+> qshift@0.1.0 test:employees
 > npm run db:push && bash scripts/run-with-test-env.sh ts-node --transpile-only --compiler-options '{"module":"CommonJS","moduleResolution":"Node"}' src/core/utils/tests/employees-sanity.test.ts
 
 
-> gshift@0.1.0 db:push
+> qshift@0.1.0 db:push
 > bash scripts/db-push.sh
 
 [db:push] Checking Supabase migrations...
@@ -49,11 +49,11 @@ PASS: Employees read endpoints remain tenant-scoped for available test users.
 
 4. npm run test:all
 
-> gshift@0.1.0 test:all
+> qshift@0.1.0 test:all
 > npm run db:push && npm run test:env && npm run test:ui-permissions && npm run test:routing && npm run test:http && npm run test:onboarding && npm run test:employees && npm run test:my-shifts && npm run test:shift
 
 
-> gshift@0.1.0 db:push
+> qshift@0.1.0 db:push
 > bash scripts/db-push.sh
 
 [db:push] Checking Supabase migrations...
@@ -66,7 +66,7 @@ PASS: Employees read endpoints remain tenant-scoped for available test users.
 [db:push]   - CI setups typically use SUPABASE_ACCESS_TOKEN and SUPABASE_DB_PASSWORD.
 [db:push] Local mode: continuing with current schema.
 
-> gshift@0.1.0 test:env
+> qshift@0.1.0 test:env
 > bash scripts/run-with-test-env.sh ts-node --transpile-only --compiler-options '{"module":"CommonJS","moduleResolution":"Node"}' src/core/utils/tests/env-validation.test.ts
 
 PASS: Valid environment parses successfully.
@@ -76,12 +76,12 @@ PASS: Missing SUPABASE_URL should fail-fast
 PASS: Missing anon key should fail-fast
 PASS: Local Supabase URL is accepted.
 
-> gshift@0.1.0 test:ui-permissions
+> qshift@0.1.0 test:ui-permissions
 > bash scripts/run-with-test-env.sh ts-node --transpile-only --compiler-options '{"module":"CommonJS","moduleResolution":"Node"}' src/core/utils/tests/ui-permissions.test.ts
 
 PASS: Permission helper logic is correct.
 
-> gshift@0.1.0 test:routing
+> qshift@0.1.0 test:routing
 > bash scripts/run-with-test-env.sh ts-node --transpile-only --compiler-options '{"module":"CommonJS","moduleResolution":"Node"}' src/core/utils/tests/post-login-routing.test.ts
 
 PASS: tenant=null routes to /onboarding
@@ -89,11 +89,11 @@ PASS: employee=null routes to /onboarding
 PASS: non-manager routes to /my
 PASS: management routes to /dashboard
 
-> gshift@0.1.0 test:http
+> qshift@0.1.0 test:http
 > node scripts/run-ssr-tests.mjs test:ssr:raw test:me:raw test:dashboard:raw
 
 
-> gshift@0.1.0 build
+> qshift@0.1.0 build
 > next build
 
    ▲ Next.js 15.5.12
@@ -153,7 +153,7 @@ Route (app)                                 Size  First Load JS
 ƒ  (Dynamic)  server-rendered on demand
 
 
-> gshift@0.1.0 start
+> qshift@0.1.0 start
 > next start -p 3100
 
    ▲ Next.js 15.5.12
@@ -163,19 +163,19 @@ Route (app)                                 Size  First Load JS
  ✓ Starting...
  ✓ Ready in 677ms
 
-> gshift@0.1.0 test:ssr:raw
+> qshift@0.1.0 test:ssr:raw
 > bash scripts/run-with-test-env.sh ts-node --transpile-only --compiler-options '{"module":"CommonJS","moduleResolution":"Node"}' src/core/utils/tests/ssr-auth.test.ts
 
 PASS: Protected layout redirects unauthenticated users to /login.
 PASS: Protected API route enforces server-side auth with 401.
 
-> gshift@0.1.0 test:me:raw
+> qshift@0.1.0 test:me:raw
 > bash scripts/run-with-test-env.sh ts-node --transpile-only --compiler-options '{"module":"CommonJS","moduleResolution":"Node"}' src/core/utils/tests/me-sanity.test.ts
 
 PASS: /api/me requires auth token.
 PASS: /api/me returns user, tenant, permissions and safe employee payload.
 
-> gshift@0.1.0 test:dashboard:raw
+> qshift@0.1.0 test:dashboard:raw
 > bash scripts/run-with-test-env.sh ts-node --transpile-only --compiler-options '{"module":"CommonJS","moduleResolution":"Node"}' src/core/utils/tests/dashboard-sanity.test.ts
 
 PASS: Dashboard overview API returns 401 when token is missing.
@@ -185,17 +185,17 @@ PASS: Dashboard overview is tenant-scoped.
 PASS: Dashboard shifts are tenant-scoped for tenant A.
 PASS: Dashboard shifts are tenant-scoped for tenant B.
 
-> gshift@0.1.0 test:onboarding
+> qshift@0.1.0 test:onboarding
 > bash scripts/run-with-test-env.sh ts-node --transpile-only --compiler-options '{"module":"CommonJS","moduleResolution":"Node"}' src/core/utils/tests/onboarding-edge-case.test.ts
 
 PASS: Duplicate onboarding is blocked.
 PASS: NULL auth.uid() path is blocked.
 
-> gshift@0.1.0 test:employees
+> qshift@0.1.0 test:employees
 > npm run db:push && bash scripts/run-with-test-env.sh ts-node --transpile-only --compiler-options '{"module":"CommonJS","moduleResolution":"Node"}' src/core/utils/tests/employees-sanity.test.ts
 
 
-> gshift@0.1.0 db:push
+> qshift@0.1.0 db:push
 > bash scripts/db-push.sh
 
 [db:push] Checking Supabase migrations...
@@ -210,21 +210,21 @@ PASS: NULL auth.uid() path is blocked.
 PASS: Non-management users are blocked from employee writes by RLS.
 PASS: Employees read endpoints remain tenant-scoped for available test users.
 
-> gshift@0.1.0 test:my-shifts
+> qshift@0.1.0 test:my-shifts
 > npm run test:my-shifts:service && npm run test:api-my-shifts
 
 
-> gshift@0.1.0 test:my-shifts:service
+> qshift@0.1.0 test:my-shifts:service
 > bash scripts/run-with-test-env.sh ts-node --transpile-only --compiler-options '{"module":"CommonJS","moduleResolution":"Node"}' src/core/utils/tests/my-shifts.test.ts
 
 PASS: User1 gets only own in-window shifts, sorted and tenant-safe.
 PASS: User2 gets only own in-window shift.
 
-> gshift@0.1.0 test:api-my-shifts
+> qshift@0.1.0 test:api-my-shifts
 > node scripts/run-ssr-tests.mjs test:api-my-shifts:raw
 
 
-> gshift@0.1.0 build
+> qshift@0.1.0 build
 > next build
 
    ▲ Next.js 15.5.12
@@ -284,7 +284,7 @@ Route (app)                                 Size  First Load JS
 ƒ  (Dynamic)  server-rendered on demand
 
 
-> gshift@0.1.0 start
+> qshift@0.1.0 start
 > next start -p 3100
 
    ▲ Next.js 15.5.12
@@ -294,6 +294,6 @@ Route (app)                                 Size  First Load JS
  ✓ Starting...
  ✓ Ready in 684ms
 
-> gshift@0.1.0 test:api-my-shifts:raw
+> qshift@0.1.0 test:api-my-shifts:raw
 > bash scripts/run-with-test-env.sh ts-node --transpile-only --compiler-options '{"module":"CommonJS","moduleResolution":"Node"}' src/core/utils/tests/api-my-shifts.test.ts
 

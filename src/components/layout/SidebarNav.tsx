@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useMe } from "../../core/auth/useMe";
 import { getNavItemsForPermissions, NavItem } from "../../features/navigation/nav-model";
+import { BRAND } from "../../lib/brand";
 import { Badge } from "../ui/badge";
 
 function isActive(pathname: string, href: string) {
@@ -30,7 +31,7 @@ export function SidebarNav() {
     <aside className="hidden w-64 shrink-0 border-r border-slate-200 bg-white md:block">
       <div className="sticky top-0 p-4">
         <div className="mb-5 flex items-center justify-between px-1">
-          <p className="text-sm font-semibold tracking-wide text-slate-900">gShift</p>
+          <p className="text-sm font-semibold tracking-wide text-slate-900">{BRAND.name}</p>
           <Badge variant="outline" className="text-[10px] uppercase tracking-wide">
             v1
           </Badge>

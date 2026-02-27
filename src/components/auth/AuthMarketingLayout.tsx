@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BRAND } from "../../lib/brand";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
 
 export function AuthMarketingLayout({
@@ -27,8 +28,8 @@ export function AuthMarketingLayout({
             <div className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-white/20 bg-white/10 text-sm font-semibold">
               qS
             </div>
-            <h1 className="mt-5 text-3xl font-semibold tracking-tight sm:text-4xl">qShift</h1>
-            <p className="mt-3 max-w-md text-sm text-slate-200">Scheduling and job marketplace, simplified.</p>
+            <h1 className="mt-5 text-3xl font-semibold tracking-tight sm:text-4xl">{BRAND.name}</h1>
+            <p className="mt-3 max-w-md text-sm text-slate-200">{BRAND.tagline}</p>
 
             <ul className="mt-8 space-y-3 text-sm text-slate-100">
               <li>Plan shifts in minutes</li>
