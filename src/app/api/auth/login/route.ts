@@ -46,14 +46,12 @@ export async function POST(request: NextRequest) {
         NextResponse.json({ ok: false, error: { message: error?.message ?? "Invalid credentials." } }, { status: 401 }),
       );
     }
-
     if (!data.session) {
       return applyResponseCookies(
         authResponse,
         NextResponse.json({ ok: false, error: { message: "Auth session missing." } }, { status: 502 }),
       );
     }
-
     if (!hasAuthCookies(authResponse)) {
       console.error("Login API: missing Set-Cookie after sign-in", { userId: data.user.id });
       return applyResponseCookies(
@@ -68,7 +66,6 @@ export async function POST(request: NextRequest) {
           ok: true,
           data: {
             userId: data.user.id,
-            accessToken: data.session.access_token,
             accessToken: data.session.access_token,
           },
         },
