@@ -25,6 +25,17 @@ test.describe("app smoke", () => {
     await expect(page.getByText("Could not find the function public.my_company_id")).toHaveCount(0);
   });
 
+  test("onboarding flow renders", async ({ page }) => {
+    await page.goto("/onboarding");
+    await expect(page.getByText("5-step setup")).toBeVisible();
+    await expect(page.getByText("Company")).toBeVisible();
+  });
+
+  test("new employee page renders", async ({ page }) => {
+    await page.goto("/employees/new");
+    await expect(page.getByText("New employee")).toBeVisible();
+  });
+
   test("schedule page renders week grid", async ({ page }) => {
     await page.goto("/schedule");
     await expect(page.getByTestId("nav-schedule")).toBeVisible();

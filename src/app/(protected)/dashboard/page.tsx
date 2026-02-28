@@ -231,6 +231,7 @@ export default function DashboardPage() {
   const hasPositiveBudget = hasBudget && (budget as number) > 0;
   const budgetDelta = hasPositiveBudget ? (budget as number) - weekCostTotal : 0;
   const setupRequired = locationCount === 0;
+  const setupComplete = locationCount > 0 && employeeCount > 0;
 
   let budgetStatusText = "Not set";
   if (weekShiftCount === 0) {
@@ -262,12 +263,28 @@ export default function DashboardPage() {
         )}
       />
 
+      {setupComplete ? (
+        <div className="flex items-center gap-2">
+          <Badge variant="secondary">Setup complete ✓</Badge>
+          <p className="text-sm text-slate-600">Your workspace has the minimum company, location, and employee data required.</p>
+        </div>
+      ) : null}
+
       {setupRequired ? (
         <EmptyState
           title="Setup required"
           description="Add your first location before building schedules and budget views."
           actionLabel="Add location"
           onAction={() => router.push("/settings/locations")}
+        />
+      ) : null}
+
+      {!setupRequired && weekShiftCount === 0 ? (
+        <EmptyState
+          title="No shifts yet"
+          description="Your setup is ready. Create the first shift so dashboard cost and coverage cards start filling in."
+          actionLabel="Open schedule"
+          onAction={() => router.push("/schedule")}
         />
       ) : null}
 
