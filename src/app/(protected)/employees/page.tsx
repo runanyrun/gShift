@@ -26,18 +26,37 @@ import {
   canManage as canManagePermissions,
   permissionsLoaded,
 } from "../../../core/auth/permissions";
+import { readEmployeeLocalMetaMap } from "../../../lib/employee-local-meta";
 
 interface EmployeeListItem {
   id: string;
-  firstName?: string;
-  lastName?: string;
-  email?: string;
-  isActive?: boolean;
-  full_name?: string;
-  location_name?: string;
-  role_name?: string;
-  hourly_rate?: number | null;
-  active?: boolean;
+  full_name: string;
+  location_id: string;
+  role_id: string;
+  hourly_rate: number | null;
+  active: boolean;
+}
+
+type ApiResponse<T> = { ok: boolean; data?: T; error?: string };
+
+async function fetchWithAuth<T>(path: string): Promise<T> {
+  const supabase = createBrowserSupabaseClient();
+  const { data, error } = await supabase.auth.getSession();
+  if (error || !data.session?.access_token) {
+    throw new Error("Auth session missing.");
+  }
+
+  const response = await fetch(path, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${data.session.access_token}`,
+    },
+  });
+  const body = (await response.json()) as ApiResponse<T>;
+  if (!response.ok || !body.ok || !body.data) {
+    throw new Error(body.error ?? "Failed to load data.");
+  }
+  return body.data;
 }
 
 export default function EmployeesPage() {
@@ -45,6 +64,8 @@ export default function EmployeesPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [locationMap, setLocationMap] = useState<Map<string, string>>(new Map());
+  const [roleMap, setRoleMap] = useState<Map<string, string>>(new Map());
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data: me } = useMe();
@@ -54,40 +75,25 @@ export default function EmployeesPage() {
     searchParams.get("error") === "no-permission" &&
     permissionsAreLoaded &&
     !canManage;
+
   useEffect(() => {
     let mounted = true;
     async function load() {
       setLoading(true);
       try {
-        const supabase = createBrowserSupabaseClient();
-        const { data, error: sessionError } = await supabase.auth.getSession();
-        if (sessionError || !data.session?.access_token) {
-          throw new Error("Auth session missing.");
-        }
-        const response = await fetch("/api/employees", {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${data.session.access_token}`,
-          },
-        });
-        const body = (await response.json()) as {
-          ok: boolean;
-          data?: Array<{
-            id: string;
-            firstName: string;
-            lastName: string;
-            email: string;
-            isActive: boolean;
-          }>;
-          error?: string;
-        };
-        if (!response.ok || !body.ok) {
-          throw new Error(body.error ?? "Failed to load employees.");
-        }
+        const [employeeRows, locationRows, roleRows] = await Promise.all([
+          fetchWithAuth<EmployeeListItem[]>("/api/employees"),
+          fetchWithAuth<Array<{ id: string; name: string }>>("/api/locations"),
+          fetchWithAuth<Array<{ id: string; name: string }>>("/api/roles"),
+        ]);
+
         if (!mounted) {
           return;
         }
-        setEmployees(body.data ?? []);
+
+        setEmployees(employeeRows);
+        setLocationMap(new Map(locationRows.map((item) => [item.id, item.name])));
+        setRoleMap(new Map(roleRows.map((item) => [item.id, item.name])));
       } catch (loadError) {
         if (!mounted) {
           return;
@@ -102,11 +108,13 @@ export default function EmployeesPage() {
       }
     }
 
-    load().catch(() => undefined);
+    void load();
     return () => {
       mounted = false;
     };
   }, []);
+
+  const localMetaMap = useMemo(() => readEmployeeLocalMetaMap(), []);
 
   const filteredEmployees = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -115,22 +123,29 @@ export default function EmployeesPage() {
     }
 
     return employees.filter((employee) => {
-      const fullName = employee.full_name ?? `${employee.firstName ?? ""} ${employee.lastName ?? ""}`;
-      const haystack = `${fullName} ${employee.email ?? ""} ${employee.location_name ?? ""} ${employee.role_name ?? ""}`.toLowerCase();
+      const email = localMetaMap[employee.id]?.email ?? "";
+      const haystack = `${employee.full_name} ${email} ${locationMap.get(employee.location_id) ?? ""} ${roleMap.get(employee.role_id) ?? ""}`.toLowerCase();
       return haystack.includes(query);
     });
-  }, [employees, search]);
+  }, [employees, search, localMetaMap, locationMap, roleMap]);
 
   const activeCount = useMemo(
-    () => employees.filter((employee) => employee.active ?? employee.isActive ?? false).length,
+    () => employees.filter((employee) => employee.active).length,
     [employees],
+  );
+  const pendingAccessCount = useMemo(
+    () => employees.filter((employee) => {
+      const meta = localMetaMap[employee.id];
+      return meta?.portalAccessEnabled && meta.email.trim().length > 0;
+    }).length,
+    [employees, localMetaMap],
   );
 
   return (
     <section className="space-y-6">
       <PageHeader
         title="Employees"
-        description="Manage your team, assignments, and rates."
+        description="Manage your team with clear profile, work, pay, and access defaults."
         actions={(
           canManage ? (
             <Link
@@ -157,7 +172,7 @@ export default function EmployeesPage() {
       <div className="grid gap-4 md:grid-cols-3">
         <KpiCard label="Total employees" value={String(employees.length)} hint="Profiles linked to this company" />
         <KpiCard label="Active" value={String(activeCount)} hint="Available for scheduling" />
-        <KpiCard label="Permissions mode" value={canManage ? "Manager" : "Worker"} hint="Page actions adapt by role" />
+        <KpiCard label="Access ready" value={String(pendingAccessCount)} hint="Employees with email + portal access enabled" />
       </div>
 
       <Section title="Employee directory" description="Primary task: search, review, and open employee profiles.">
@@ -188,32 +203,44 @@ export default function EmployeesPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Name</TableHead>
-                    <TableHead>Location</TableHead>
-                    <TableHead>Role</TableHead>
-                    <TableHead>Hourly rate</TableHead>
+                    <TableHead>Work</TableHead>
+                    <TableHead>Pay</TableHead>
+                    <TableHead>Access</TableHead>
                     <TableHead>Status</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredEmployees.map((employee) => {
-                    const fullName =
-                      employee.full_name
-                      ?? (`${employee.firstName ?? ""} ${employee.lastName ?? ""}`.trim() || "Unnamed");
-                    const locationName = employee.location_name ?? "-";
-                    const roleName = employee.role_name ?? "-";
-                    const hourlyRate = typeof employee.hourly_rate === "number" ? employee.hourly_rate.toFixed(2) : "-";
-                    const active = employee.active ?? employee.isActive ?? false;
+                    const email = localMetaMap[employee.id]?.email ?? "";
+                    const portalEnabled = localMetaMap[employee.id]?.portalAccessEnabled ?? false;
+                    const locationName = locationMap.get(employee.location_id) ?? "Set a location to make this employee schedulable.";
+                    const roleName = roleMap.get(employee.role_id) ?? "Set a primary role to use scheduling defaults.";
+                    const hourlyRate = typeof employee.hourly_rate === "number"
+                      ? `${employee.hourly_rate.toFixed(2)} / hr`
+                      : "Add an hourly default to prefill shifts faster.";
 
                     return (
                       <TableRow key={employee.id}>
                         <TableCell>
-                          {canManage ? <Link href={`/employees/${employee.id}`}>{fullName}</Link> : fullName}
+                          {canManage ? <Link href={`/employees/${employee.id}`}>{employee.full_name || "Unnamed"}</Link> : (employee.full_name || "Unnamed")}
                         </TableCell>
-                        <TableCell>{locationName}</TableCell>
-                        <TableCell>{roleName}</TableCell>
+                        <TableCell>
+                          <div className="space-y-1">
+                            <p className="text-sm text-slate-900">{locationName}</p>
+                            <p className="text-xs text-slate-500">{roleName}</p>
+                          </div>
+                        </TableCell>
                         <TableCell>{hourlyRate}</TableCell>
                         <TableCell>
-                          <Badge variant={active ? "secondary" : "outline"}>{active ? "Active" : "Inactive"}</Badge>
+                          <div className="space-y-1">
+                            <Badge variant={portalEnabled ? "secondary" : "outline"}>
+                              {portalEnabled ? "Portal access on" : "Invite later"}
+                            </Badge>
+                            <p className="text-xs text-slate-500">{email || "No email yet"}</p>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={employee.active ? "secondary" : "outline"}>{employee.active ? "Active" : "Inactive"}</Badge>
                         </TableCell>
                       </TableRow>
                     );

@@ -14,6 +14,7 @@ import { Sheet, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from ".
 import { DataTableToolbar } from "../ui/data-table-toolbar";
 import { EmptyState } from "../ui/empty-state";
 import { Skeleton } from "../ui/skeleton";
+import { type DayKey, readSchedulePrefs } from "../../lib/schedule-prefs";
 
 type ApiResponse<T> = {
   ok: boolean;
@@ -101,6 +102,7 @@ type EmployeeCostBreakdown = {
 };
 
 const DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const DAY_KEYS: DayKey[] = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
 
 function pad2(value: number) {
   return String(value).padStart(2, "0");
@@ -236,6 +238,12 @@ function buildWeekDays(weekStart: string) {
   return Array.from({ length: 7 }, (_, index) => addDaysToDateString(weekStart, index));
 }
 
+function dayKeyOfDate(day: string): DayKey {
+  const [year, month, date] = day.split("-").map(Number);
+  const weekday = new Date(Date.UTC(year, month - 1, date)).getUTCDay();
+  return DAY_KEYS[(weekday + 6) % 7];
+}
+
 function dateLabel(day: string, timeZone: string, formatDateDisplay: (value: Date | string) => string) {
   const anchor = makeIsoWithZone(day, 12, 0, timeZone);
   const [year, month, date] = day.split("-").map(Number);
@@ -318,6 +326,7 @@ export function WeeklySchedule() {
     default_shift_start: "09:00",
     default_shift_end: "17:00",
   });
+  const [workingDays, setWorkingDays] = useState<DayKey[]>(readSchedulePrefs().workingDays);
 
   const [editingShift, setEditingShift] = useState<EditableShift | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -392,6 +401,7 @@ export function WeeklySchedule() {
         default_shift_start: companySettingsRow.default_shift_start ?? "09:00",
         default_shift_end: companySettingsRow.default_shift_end ?? "17:00",
       });
+      setWorkingDays(readSchedulePrefs().workingDays);
 
       const initialLocationId = selectedLocationId || locationRows[0]?.id || "";
       setSelectedLocationId(initialLocationId);
@@ -720,6 +730,44 @@ export function WeeklySchedule() {
     onDoubleClickEmptyCell(employee, targetDay, existing);
   }
 
+  async function createFirstShift() {
+    if (!selectedLocationId || employees.length === 0 || weekDays.length === 0) {
+      return;
+    }
+
+    const employee = employees[0];
+    const role = roles.find((item) => item.id === employee.role_id);
+    const targetDay = weekDays.find((day) => workingDays.includes(dayKeyOfDate(day))) ?? weekDays[0];
+    const defaultStart = parseTimeInput(companySettings.default_shift_start, 9, 0);
+    const defaultEnd = parseTimeInput(companySettings.default_shift_end, 17, 0);
+
+    setSaving(true);
+    setError(null);
+    try {
+      await fetchJson<Shift[]>("/api/shifts/bulk-upsert", {
+        method: "POST",
+        body: JSON.stringify({
+          shifts: [{
+            location_id: selectedLocationId,
+            employee_id: employee.id,
+            role_id: employee.role_id,
+            start_at: makeIsoWithZone(targetDay, defaultStart.hour, defaultStart.minute, tz),
+            end_at: makeIsoWithZone(targetDay, defaultEnd.hour, defaultEnd.minute, tz),
+            break_minutes: 0,
+            hourly_wage: employee.hourly_rate ?? role?.hourly_wage_default ?? 0,
+            notes: "Starter shift",
+          }],
+        }),
+      });
+
+      await loadWeekData(selectedLocationId, weekStart);
+    } catch (createError) {
+      setError(createError instanceof Error ? createError.message : "Failed to create the first shift");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   async function copyLastWeek() {
     if (!selectedLocationId) {
       return;
@@ -931,6 +979,11 @@ export function WeeklySchedule() {
               <Button type="button" onClick={() => void copyLastWeek()} disabled={!selectedLocationId || saving}>
                 Copy last week
               </Button>
+              {shifts.length === 0 ? (
+                <Button type="button" onClick={() => void createFirstShift()} disabled={!selectedLocationId || employees.length === 0 || saving}>
+                  Create first shift
+                </Button>
+              ) : null}
               <Button type="button" variant="outline" onClick={onQuickAddShift} disabled={!selectedLocationId || employees.length === 0}>
                 Quick add shift
               </Button>
@@ -1020,19 +1073,45 @@ export function WeeklySchedule() {
               <div
                 key={dayStr}
                 data-testid={`week-day-${dayStr}`}
-                className="border-l border-slate-200 p-3 text-sm font-semibold text-slate-700"
+                className={`border-l border-slate-200 p-3 text-sm font-semibold ${
+                  workingDays.includes(dayKeyOfDate(dayStr)) ? "text-slate-700" : "bg-amber-50/70 text-amber-900"
+                }`}
               >
                 <p>{dateLabel(dayStr, tz, formatDateDisplay)}</p>
-                <p className="text-xs font-medium text-slate-500">{formatCurrency(dayCostTotals.get(dayStr) ?? 0)}</p>
+                <p className={`text-xs font-medium ${workingDays.includes(dayKeyOfDate(dayStr)) ? "text-slate-500" : "text-amber-700"}`}>
+                  {workingDays.includes(dayKeyOfDate(dayStr)) ? "Working day" : "Non-working day"} • {formatCurrency(dayCostTotals.get(dayStr) ?? 0)}
+                </p>
               </div>
             ))}
           </div>
 
-          {visibleEmployees.length === 0 ? (
+          {employees.length === 0 ? (
+            <div className="p-4">
+              <EmptyState
+                title="No employees for this location"
+                description="Add an employee or change location, then create the first shift."
+                actionLabel="Go to Employees"
+                onAction={() => { window.location.href = "/employees/new"; }}
+              />
+            </div>
+          ) : null}
+
+          {employees.length > 0 && visibleEmployees.length === 0 ? (
             <div className="p-4 text-sm text-slate-600">
               {employeeSearch.trim().length > 0
                 ? "No employees match this search."
                 : "No employees found for this location."}
+            </div>
+          ) : null}
+
+          {employees.length > 0 && shifts.length === 0 ? (
+            <div className="border-b border-slate-100 p-4">
+              <EmptyState
+                title="No shifts in this week"
+                description="Create the first shift in one click using company defaults, then refine it in the grid."
+                actionLabel="Create first shift"
+                onAction={() => void createFirstShift()}
+              />
             </div>
           ) : null}
 
@@ -1046,7 +1125,9 @@ export function WeeklySchedule() {
                 return (
                   <div
                     key={key}
-                    className="min-h-[92px] border-l border-slate-100 p-2"
+                    className={`min-h-[92px] border-l border-slate-100 p-2 ${
+                      workingDays.includes(dayKeyOfDate(dateStr)) ? "" : "bg-amber-50/40"
+                    }`}
                     onDragOver={onDragOver}
                     onDrop={(event) => onDrop(event, employee.id, dateStr)}
                     onDoubleClick={() => onDoubleClickEmptyCell(employee, dateStr, cellShifts)}

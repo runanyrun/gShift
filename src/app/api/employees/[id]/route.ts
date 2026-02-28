@@ -21,6 +21,34 @@ const updateEmployeeSchema = z
     message: "At least one field is required",
   });
 
+export async function GET(_: Request, context: { params: Promise<{ id: string }> }) {
+  try {
+    const supabase = await getServerSupabase();
+    await requireUser(supabase);
+    const companyId = await requireCompanyId(supabase);
+    const params = paramsSchema.parse(await context.params);
+
+    const { data, error } = await supabase
+      .from("employees")
+      .select("id, company_id, location_id, role_id, full_name, active, hourly_rate, created_at, updated_at")
+      .eq("id", params.id)
+      .eq("company_id", companyId)
+      .maybeSingle();
+
+    if (error) {
+      throw new HttpError(400, error.message);
+    }
+
+    if (!data) {
+      throw new HttpError(404, "Employee not found");
+    }
+
+    return jsonOk(data);
+  } catch (error) {
+    return handleRouteError(error);
+  }
+}
+
 export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
     const supabase = await getServerSupabase();

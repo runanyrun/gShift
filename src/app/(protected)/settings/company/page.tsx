@@ -11,6 +11,8 @@ import { Card, CardContent } from "../../../../components/ui/card";
 import { PageHeader } from "../../../../components/layout/PageHeader";
 import { Section } from "../../../../components/ui/section";
 import { Skeleton } from "../../../../components/ui/skeleton";
+import { WorkDaysPicker } from "../../../../components/ui/work-days-picker";
+import { type DayKey, readSchedulePrefs, writeSchedulePrefs } from "../../../../lib/schedule-prefs";
 
 type ApiResponse<T> = {
   ok: boolean;
@@ -50,6 +52,7 @@ async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
 }
 
 export default function CompanySettingsPage() {
+  const [initialWorkingDays, setInitialWorkingDays] = useState<DayKey[]>(["mon", "tue", "wed", "thu", "fri"]);
   const [settings, setSettings] = useState<CompanySettings | null>(null);
   const [locale, setLocale] = useState("tr-TR");
   const [currency, setCurrency] = useState("TRY");
@@ -58,6 +61,7 @@ export default function CompanySettingsPage() {
   const [defaultShiftStart, setDefaultShiftStart] = useState("09:00");
   const [defaultShiftEnd, setDefaultShiftEnd] = useState("17:00");
   const [weeklyBudgetLimit, setWeeklyBudgetLimit] = useState("");
+  const [workingDays, setWorkingDays] = useState<DayKey[]>(["mon", "tue", "wed", "thu", "fri"]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -70,6 +74,7 @@ export default function CompanySettingsPage() {
         || defaultShiftStart !== (settings.default_shift_start ?? "09:00")
         || defaultShiftEnd !== (settings.default_shift_end ?? "17:00")
         || weeklyBudgetLimit !== (settings.weekly_budget_limit === null ? "" : String(settings.weekly_budget_limit))
+        || workingDays.join(",") !== initialWorkingDays.join(",")
       )
     : true;
 
@@ -94,6 +99,9 @@ export default function CompanySettingsPage() {
         setDefaultShiftStart(data.default_shift_start ?? "09:00");
         setDefaultShiftEnd(data.default_shift_end ?? "17:00");
         setWeeklyBudgetLimit(data.weekly_budget_limit === null ? "" : String(data.weekly_budget_limit));
+        const localWorkingDays = readSchedulePrefs().workingDays;
+        setWorkingDays(localWorkingDays);
+        setInitialWorkingDays(localWorkingDays);
       } catch (loadError) {
         if (!mounted) {
           return;
@@ -141,6 +149,8 @@ export default function CompanySettingsPage() {
       setDefaultShiftStart(data.default_shift_start ?? "09:00");
       setDefaultShiftEnd(data.default_shift_end ?? "17:00");
       setWeeklyBudgetLimit(data.weekly_budget_limit === null ? "" : String(data.weekly_budget_limit));
+      writeSchedulePrefs({ workingDays });
+      setInitialWorkingDays(workingDays);
       toast(data.warning ? "Saved (limited mode)" : "Saved");
     } catch (saveError) {
       const message = saveError instanceof Error ? saveError.message : "Failed to save company settings";
@@ -256,6 +266,15 @@ export default function CompanySettingsPage() {
                 value={weeklyBudgetLimit}
                 onChange={(event) => setWeeklyBudgetLimit(event.target.value)}
                 placeholder="10000"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <Label>Working days</Label>
+              <WorkDaysPicker
+                value={workingDays}
+                onChange={setWorkingDays}
+                helperText="Stored locally for now. Used by onboarding and to mark non-working days in the schedule grid."
               />
             </div>
 

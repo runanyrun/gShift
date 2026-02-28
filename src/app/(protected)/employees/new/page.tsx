@@ -13,15 +13,44 @@ import { PageHeader } from "../../../../components/layout/PageHeader";
 import { Section } from "../../../../components/ui/section";
 import { Skeleton } from "../../../../components/ui/skeleton";
 import { Breadcrumbs } from "../../../../components/ui/breadcrumbs";
-import { EmployeeForm } from "../../../../shared/components/employee-form";
+import { EmployeeForm, type EmployeeFormValues, type EmployeeOption } from "../../../../shared/components/employee-form";
+import { getDefaultEmployeeLocalMeta, writeEmployeeLocalMeta } from "../../../../lib/employee-local-meta";
+
+type ApiResponse<T> = { ok: boolean; data?: T; error?: string };
+
+async function fetchWithAuth<T>(path: string, init?: RequestInit): Promise<T> {
+  const supabase = createBrowserSupabaseClient();
+  const { data, error } = await supabase.auth.getSession();
+  if (error || !data.session?.access_token) {
+    throw new Error("Auth session missing.");
+  }
+
+  const response = await fetch(path, {
+    ...init,
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${data.session.access_token}`,
+      ...(init?.headers ?? {}),
+    },
+  });
+
+  const body = (await response.json()) as ApiResponse<T>;
+  if (!response.ok || !body.ok || !body.data) {
+    throw new Error(body.error ?? "Request failed.");
+  }
+
+  return body.data;
+}
 
 export default function EmployeeCreatePage() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
+  const [loadingOptions, setLoadingOptions] = useState(true);
+  const [locations, setLocations] = useState<EmployeeOption[]>([]);
+  const [roles, setRoles] = useState<EmployeeOption[]>([]);
   const { data: me } = useMe();
   const permissionsAreLoaded = permissionsLoaded(me?.permissions);
   const canManage = canManagePermissions(me?.permissions);
-  const canSeeNotes = canManage;
 
   useEffect(() => {
     if (permissionsAreLoaded && !canManage) {
@@ -29,7 +58,45 @@ export default function EmployeeCreatePage() {
     }
   }, [canManage, permissionsAreLoaded, router]);
 
-  if (!permissionsAreLoaded) {
+  useEffect(() => {
+    if (!permissionsAreLoaded || !canManage) {
+      return;
+    }
+
+    let mounted = true;
+
+    void (async () => {
+      setLoadingOptions(true);
+      try {
+        const [locationRows, roleRows] = await Promise.all([
+          fetchWithAuth<Array<{ id: string; name: string }>>("/api/locations"),
+          fetchWithAuth<Array<{ id: string; name: string }>>("/api/roles"),
+        ]);
+
+        if (!mounted) {
+          return;
+        }
+
+        setLocations(locationRows.map((item) => ({ id: item.id, name: item.name })));
+        setRoles(roleRows.map((item) => ({ id: item.id, name: item.name })));
+      } catch (loadError) {
+        if (!mounted) {
+          return;
+        }
+        setError(loadError instanceof Error ? loadError.message : "Failed to load form options.");
+      } finally {
+        if (mounted) {
+          setLoadingOptions(false);
+        }
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, [permissionsAreLoaded, canManage]);
+
+  if (!permissionsAreLoaded || loadingOptions) {
     return (
       <section className="space-y-6">
         <PageHeader title="New employee" description="Create a profile and link it to your company workspace." />
@@ -49,6 +116,32 @@ export default function EmployeeCreatePage() {
     );
   }
 
+  if (locations.length === 0 || roles.length === 0) {
+    return (
+      <section className="space-y-6">
+        <Breadcrumbs
+          items={[
+            { label: "Employees", href: "/employees" },
+            { label: "New employee" },
+          ]}
+          backHref="/employees"
+          backLabel="Back to employees"
+        />
+        <PageHeader title="New employee" description="Create a profile and link it to your company workspace." />
+        <Section
+          title="Before you add people"
+          description="Employees need at least one location and one role so they can be scheduled immediately."
+        >
+          <p className="rounded-md border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+            Add your first location and role in onboarding or in settings, then come back here.
+          </p>
+        </Section>
+      </section>
+    );
+  }
+
+  const localDefaults = getDefaultEmployeeLocalMeta();
+
   return (
     <section className="space-y-6">
       <Breadcrumbs
@@ -61,7 +154,7 @@ export default function EmployeeCreatePage() {
       />
       <PageHeader
         title="New employee"
-        description="Primary task: create a single employee profile with clear required fields."
+        description="Create a scheduling-ready employee record with clear work, pay, and access defaults."
         actions={(
           <Link
             href="/employees"
@@ -72,55 +165,64 @@ export default function EmployeeCreatePage() {
         )}
       />
 
-      <Section title="Profile" description="Fill in identity and payroll fields, then save to create the record.">
-        <EmployeeForm
-          initialValues={{
-            firstName: "",
-            lastName: "",
-            email: "",
-            isActive: true,
-            payrollId: "",
-            notes: "",
-          }}
-          submitLabel="Create employee"
-          error={error}
-          showNotes={Boolean(canSeeNotes)}
-          onSubmit={async (values) => {
-            setError(null);
-            try {
-              const supabase = createBrowserSupabaseClient();
-              const { data, error: sessionError } = await supabase.auth.getSession();
-              if (sessionError || !data.session?.access_token) {
-                throw new Error("Auth session missing.");
-              }
+      <EmployeeForm
+        locations={locations}
+        roles={roles}
+        initialValues={{
+          fullName: "",
+          locationId: locations[0]?.id ?? "",
+          roleId: roles[0]?.id ?? "",
+          isActive: true,
+          hourlyRate: "",
+          email: localDefaults.email,
+          portalAccessEnabled: localDefaults.portalAccessEnabled,
+          phone: localDefaults.phone,
+          primaryRoleLabel: roles[0]?.name ?? "",
+          additionalRolesText: localDefaults.additionalRolesText,
+          availabilityDays: localDefaults.availabilityDays,
+          payMode: localDefaults.payMode,
+          payAmount: localDefaults.payAmount,
+          startDate: localDefaults.startDate,
+          defaultBreakMinutes: localDefaults.defaultBreakMinutes,
+          notes: "",
+        }}
+        submitLabel="Create employee"
+        error={error}
+        onSubmit={async (values: EmployeeFormValues) => {
+          setError(null);
+          try {
+            const data = await fetchWithAuth<{ id: string }>("/api/employees", {
+              method: "POST",
+              body: JSON.stringify({
+                full_name: values.fullName,
+                location_id: values.locationId,
+                role_id: values.roleId,
+                hourly_rate: values.payMode === "hourly"
+                  ? (values.payAmount.trim() || values.hourlyRate.trim() || null)
+                  : (values.hourlyRate.trim() || null),
+                active: values.isActive,
+              }),
+            });
 
-              const response = await fetch("/api/employees", {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  Authorization: `Bearer ${data.session.access_token}`,
-                },
-                body: JSON.stringify(values),
-              });
-              const body = (await response.json()) as {
-                ok: boolean;
-                data?: { id: string };
-                error?: string;
-              };
-              if (!response.ok || !body.ok || !body.data?.id) {
-                throw new Error(
-                  response.status === 401 || response.status === 403
-                    ? "You do not have permission to perform this action."
-                    : (body.error ?? "Failed to create employee."),
-                );
-              }
-              router.push(`/employees/${body.data.id}`);
-            } catch (submitError) {
-              setError(submitError instanceof Error ? submitError.message : "Create failed.");
-            }
-          }}
-        />
-      </Section>
+            writeEmployeeLocalMeta(data.id, {
+              email: values.email,
+              phone: values.phone,
+              portalAccessEnabled: values.portalAccessEnabled,
+              primaryRoleLabel: values.primaryRoleLabel,
+              additionalRolesText: values.additionalRolesText,
+              availabilityDays: values.availabilityDays,
+              payMode: values.payMode,
+              payAmount: values.payAmount,
+              startDate: values.startDate,
+              defaultBreakMinutes: values.defaultBreakMinutes,
+            });
+
+            router.push(`/employees/${data.id}`);
+          } catch (submitError) {
+            setError(submitError instanceof Error ? submitError.message : "Create failed.");
+          }
+        }}
+      />
     </section>
   );
 }
